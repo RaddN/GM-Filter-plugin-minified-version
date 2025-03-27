@@ -121,17 +121,32 @@ class dapfforwc_Filter_Functions
                 ];
             }
         }
+
         // Order products based on $orderby
         if (!empty($orderby)) {
-            $orderby = $orderby === 'menu_order date' ? 'menu_order' : ($orderby === 'date' ? 'post_modified' : $orderby);
+            if ($orderby === 'menu_order date') {
+            usort($products_ids, function ($a, $b) use ($product_details_json) {
+                $menu_order_a = $product_details_json[$a]['menu_order'] ?? 0;
+                $menu_order_b = $product_details_json[$b]['menu_order'] ?? 0;
+
+                if ($menu_order_a === $menu_order_b) {
+                $date_a = $product_details_json[$a]['post_modified'] ?? '';
+                $date_b = $product_details_json[$b]['post_modified'] ?? '';
+                return strcmp($date_a, $date_b);
+                }
+
+                return $menu_order_a <=> $menu_order_b;
+            });
+            } else {
+            $orderby = $orderby === 'date' ? 'post_modified' : $orderby;
             usort($products_ids, function ($a, $b) use ($product_details_json, $orderby) {
                 if (!isset($product_details_json[$a][$orderby]) || !isset($product_details_json[$b][$orderby])) {
-                    return 0;
+                return 0;
                 }
                 return $product_details_json[$a][$orderby] <=> $product_details_json[$b][$orderby];
             });
+            }
         }
-
         $count_total_showing_product = count($products_ids);
         $updated_filters = dapfforwc_get_updated_filters($products_ids);
         $filterform = dapfforwc_filter_form($updated_filters, $default_filter);

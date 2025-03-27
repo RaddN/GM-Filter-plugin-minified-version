@@ -6,16 +6,17 @@ if (!defined('ABSPATH')) {
 function dapfforwc_product_filter_shortcode($atts)
 {
     global $post, $wcapf_options, $dapfforwc_advance_settings, $wp;
-    $dapfforwc_slug = isset($post) ? dapfforwc_get_full_slug($post->ID) : "";
+    $dapfforwc_slug = isset($post) ? dapfforwc_get_full_slug(get_the_ID()) : "";
     $request = $wp->request;
     $shortcode = $dapfforwc_advance_settings["product_shortcode"] ?? 'products'; // Shortcode to search for
-    $attributes_list = dapfforwc_get_shortcode_attributes_from_page($post->post_content, $shortcode);
+    $attributes_list = dapfforwc_get_shortcode_attributes_from_page($post->post_content ?? "", $shortcode);
     foreach ($attributes_list as $attributes) {
         // Ensure that the 'category', 'attribute', and 'terms' keys exist
         $arrayCata = isset($attributes['category']) ? explode(",", $attributes['category']) : [];
-        $tagValue = isset($attributes['tags']) ? $attributes['tags'] : [];
-        $termsValue = isset($attributes['terms']) ? $attributes['terms'] : [];
+        $tagValue = isset($attributes['tags']) ? explode(",", $attributes['tags']) : [];
+        $termsValue = isset($attributes['terms']) ? explode(",", $attributes['terms']) : [];
         $filters = !empty($arrayCata) ? $arrayCata : (!empty($tagValue) ? $tagValue : $termsValue);
+
 
         // Use the combined full slug as the key in default_filters
         $wcapf_options['default_filters'][$dapfforwc_slug] = $filters;
@@ -30,8 +31,8 @@ function dapfforwc_product_filter_shortcode($atts)
     $second_operator = strtoupper($wcapf_options["product_show_settings"][$dapfforwc_slug]["operator_second"] ?? "IN");
     $request_values = array_values(explode('/', $request));
     $default_filter = array_values(array_merge(
-        is_array($wcapf_options["default_filters"][$dapfforwc_slug] ?? []) ? $wcapf_options["default_filters"][$dapfforwc_slug] : [],
-        is_array($request_values) ? $request_values : []
+        isset($wcapf_options["default_filters"][$dapfforwc_slug]) && is_array($wcapf_options["default_filters"][$dapfforwc_slug]) ? $wcapf_options["default_filters"][$dapfforwc_slug] : [],
+        isset($request_values) && is_array($request_values) ? $request_values : []
     ));
     $ratings = array_values(array_filter($default_filter, 'is_numeric'));
 
@@ -131,7 +132,7 @@ function dapfforwc_product_filter_shortcode($atts)
         } ?>
         <?php if (!empty($atts['pagination_selector'])) {
             echo 'data-pagination_selector="' . esc_attr($atts["pagination_selector"]) . '"';
-        } 
+        }
         ?>>
         <?php
         wp_nonce_field('gm-product-filter-action', 'gm-product-filter-nonce');
@@ -201,7 +202,8 @@ function dapfforwc_product_filter_shortcode_single($atts)
 add_shortcode('wcapf_product_filter_single', 'dapfforwc_product_filter_shortcode_single');
 
 
-function dapfforwc_get_updated_filters($product_ids) {
+function dapfforwc_get_updated_filters($product_ids)
+{
     $categories = [];
     $attributes = [];
     $tags = [];
@@ -212,49 +214,53 @@ function dapfforwc_get_updated_filters($product_ids) {
 
         // Extract categories and tags from all_data
         // Categories
-        if(is_array($all_data['categories']) || is_object($all_data['categories'])){
-        foreach ($all_data['categories'] as $term_id => $category) {
-            if (!empty(array_intersect($product_ids, $category['products']))) {
-                $categories[$term_id] = (object) [
-                    'term_id' => $term_id,
-                    'name'    => $category['name'],
-                    'slug'    => $category['slug'],
-                    'taxonomy' => 'product_cat',
-                ];
-            }
-        }}
-
-        // Tags
-        if(is_array($all_data['tags']) || is_object($all_data['tags'])){
-        foreach ($all_data['tags'] as $term_id => $tag) {
-            if (!empty(array_intersect($product_ids, $tag['products']))) {
-                $tags[$term_id] = (object) [
-                    'term_id' => $term_id,
-                    'name'    => $tag['name'],
-                    'slug'    => $tag['slug'],
-                    'taxonomy' => 'product_tag',
-                ];
-            }
-        }}
-
-        // Extract attributes
-        if(is_array($all_data['attributes']) || is_object($all_data['attributes'])){
-        foreach ($all_data['attributes'] as $attribute) {
-            $attribute_name = $attribute['attribute_name'];
-            $terms = $attribute['terms'];
-
-            if(is_array($terms) || is_object($terms)){
-            foreach ($terms as $term) {
-                // Check if the term's products match the provided product IDs
-                if (!empty(array_intersect($product_ids, $term['products']))) {
-                    $attributes[$attribute_name][] = [
-                        'term_id' => $term['term_id'],
-                        'name'    => $term['name'],
-                        'slug'    => $term['slug'],
+        if (is_array($all_data['categories']) || is_object($all_data['categories'])) {
+            foreach ($all_data['categories'] as $term_id => $category) {
+                if (!empty(array_intersect($product_ids, $category['products']))) {
+                    $categories[$term_id] = (object) [
+                        'term_id' => $term_id,
+                        'name'    => $category['name'],
+                        'slug'    => $category['slug'],
+                        'taxonomy' => 'product_cat',
                     ];
                 }
-            }}
-        }}
+            }
+        }
+
+        // Tags
+        if (is_array($all_data['tags']) || is_object($all_data['tags'])) {
+            foreach ($all_data['tags'] as $term_id => $tag) {
+                if (!empty(array_intersect($product_ids, $tag['products']))) {
+                    $tags[$term_id] = (object) [
+                        'term_id' => $term_id,
+                        'name'    => $tag['name'],
+                        'slug'    => $tag['slug'],
+                        'taxonomy' => 'product_tag',
+                    ];
+                }
+            }
+        }
+
+        // Extract attributes
+        if (is_array($all_data['attributes']) || is_object($all_data['attributes'])) {
+            foreach ($all_data['attributes'] as $attribute) {
+                $attribute_name = $attribute['attribute_name'];
+                $terms = $attribute['terms'];
+
+                if (is_array($terms) || is_object($terms)) {
+                    foreach ($terms as $term) {
+                        // Check if the term's products match the provided product IDs
+                        if (!empty(array_intersect($product_ids, $term['products']))) {
+                            $attributes[$attribute_name][] = [
+                                'term_id' => $term['term_id'],
+                                'name'    => $term['name'],
+                                'slug'    => $term['slug'],
+                            ];
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return [
@@ -264,9 +270,10 @@ function dapfforwc_get_updated_filters($product_ids) {
     ];
 }
 
-function dapfforwc_get_woocommerce_attributes_with_terms() {
+function dapfforwc_get_woocommerce_attributes_with_terms()
+{
     global $wpdb;
-    
+
     $cache_file = __DIR__ . '/woocommerce_attributes_cache.json'; // Path to cache file
     $cache_time = 43200; // 12 hours in seconds
 
@@ -292,60 +299,61 @@ function dapfforwc_get_woocommerce_attributes_with_terms() {
     $results = $wpdb->get_results($query, ARRAY_A);
 
     if (is_array($results) || is_object($results)) {
-    foreach ($results as $row) {
-        $term_id = $row['term_id'];
-        $taxonomy = $row['taxonomy'];
-        
-        if ($taxonomy === 'product_cat') {
-            if (!isset($data['categories'][$term_id])) {
-                $data['categories'][$term_id] = [
-                    'name' => $row['name'],
-                    'slug' => $row['slug'],
-                    'products' => []
-                ];
-            }
-            if ($row['object_id']) {
-                $data['categories'][$term_id]['products'][] = $row['object_id'];
-            }
-        } elseif ($taxonomy === 'product_tag') {
-            if (!isset($data['tags'][$term_id])) {
-                $data['tags'][$term_id] = [
-                    'name' => $row['name'],
-                    'slug' => $row['slug'],
-                    'products' => []
-                ];
-            }
-            if ($row['object_id']) {
-                $data['tags'][$term_id]['products'][] = $row['object_id'];
-            }
-        } elseif (!empty($row['attribute_name'])) {
-            $attr_name = $row['attribute_name'];
-            
-            if (!isset($data['attributes'][$attr_name])) {
-                $data['attributes'][$attr_name] = [
-                    'attribute_label' => $row['attribute_label'],
-                    'attribute_name' => $attr_name,
-                    'terms' => []
-                ];
-            }
+        foreach ($results as $row) {
+            $term_id = $row['term_id'];
+            $taxonomy = $row['taxonomy'];
 
-            // Check if the term already exists
-            $term_key = array_search($term_id, array_column($data['attributes'][$attr_name]['terms'], 'term_id'));
-            
-            if ($term_key === false) {
-                $data['attributes'][$attr_name]['terms'][] = [
-                    'term_id'    => $term_id,
-                    'name'       => $row['name'],
-                    'slug'       => $row['slug'],
-                    'products'   => $row['object_id'] ? [$row['object_id']] : [],
-                ];
-            } else {
+            if ($taxonomy === 'product_cat') {
+                if (!isset($data['categories'][$term_id])) {
+                    $data['categories'][$term_id] = [
+                        'name' => $row['name'],
+                        'slug' => $row['slug'],
+                        'products' => []
+                    ];
+                }
                 if ($row['object_id']) {
-                    $data['attributes'][$attr_name]['terms'][$term_key]['products'][] = $row['object_id'];
+                    $data['categories'][$term_id]['products'][] = $row['object_id'];
+                }
+            } elseif ($taxonomy === 'product_tag') {
+                if (!isset($data['tags'][$term_id])) {
+                    $data['tags'][$term_id] = [
+                        'name' => $row['name'],
+                        'slug' => $row['slug'],
+                        'products' => []
+                    ];
+                }
+                if ($row['object_id']) {
+                    $data['tags'][$term_id]['products'][] = $row['object_id'];
+                }
+            } elseif (!empty($row['attribute_name'])) {
+                $attr_name = $row['attribute_name'];
+
+                if (!isset($data['attributes'][$attr_name])) {
+                    $data['attributes'][$attr_name] = [
+                        'attribute_label' => $row['attribute_label'],
+                        'attribute_name' => $attr_name,
+                        'terms' => []
+                    ];
+                }
+
+                // Check if the term already exists
+                $term_key = array_search($term_id, array_column($data['attributes'][$attr_name]['terms'], 'term_id'));
+
+                if ($term_key === false) {
+                    $data['attributes'][$attr_name]['terms'][] = [
+                        'term_id'    => $term_id,
+                        'name'       => $row['name'],
+                        'slug'       => $row['slug'],
+                        'products'   => $row['object_id'] ? [$row['object_id']] : [],
+                    ];
+                } else {
+                    if ($row['object_id']) {
+                        $data['attributes'][$attr_name]['terms'][$term_key]['products'][] = $row['object_id'];
+                    }
                 }
             }
         }
-    }}
+    }
 
     // Write the data to the cache file
     file_put_contents($cache_file, json_encode($data));
@@ -372,40 +380,40 @@ function dapfforwc_get_woocommerce_product_details()
     $offset = 0;
     $products = [];
 
-    // First, get all product IDs efficiently - now ordered by date (post_modified)
+    // First, get all product IDs efficiently - now ordered by date (post_date)
     $id_query = "
     SELECT ID 
     FROM {$wpdb->prefix}posts 
     WHERE post_type = 'product' AND post_status = 'publish'
-    ORDER BY post_modified DESC
+    ORDER BY post_date DESC
     ";
-    
+
     $product_ids = $wpdb->get_col($id_query);
-    
+
     if (empty($product_ids)) {
         // Save empty result to cache
         file_put_contents($cache_file, json_encode(['products' => []], JSON_UNESCAPED_UNICODE));
         return ['products' => []];
     }
-    
+
     // Process in batches
     $total_products = count($product_ids);
-    
+
     while ($offset < $total_products) {
         $batch_ids = array_slice($product_ids, $offset, $batch_size);
         $placeholders = implode(',', array_fill(0, count($batch_ids), '%d'));
-        
+
         // Main query using prepare for security and performance
         // Maintain the same order as in the ID query
         $query = $wpdb->prepare("
-        SELECT p.ID, p.post_title, p.post_name, p.post_modified, p.menu_order, p.post_excerpt, p.post_date
+        SELECT p.ID, p.post_title, p.post_name, p.menu_order, p.post_excerpt, p.post_date
         FROM {$wpdb->prefix}posts p
         WHERE p.ID IN ($placeholders)
-        ORDER BY p.post_modified DESC
+        ORDER BY p.post_date DESC
         ", $batch_ids);
-        
+
         $results = $wpdb->get_results($query, ARRAY_A);
-        
+
         // Get product meta in bulk (more efficient than separate joins)
         $meta_query = $wpdb->prepare("
         SELECT post_id, meta_key, meta_value
@@ -414,15 +422,15 @@ function dapfforwc_get_woocommerce_product_details()
         AND meta_key IN ('_price', '_sale_price', '_regular_price', '_wc_average_rating', 
                          '_product_type', '_sku', '_stock_status', '_thumbnail_id')
         ", $batch_ids);
-        
+
         $meta_results = $wpdb->get_results($meta_query, ARRAY_A);
-        
+
         // Organize meta data by product ID
         $product_meta = [];
         foreach ($meta_results as $meta) {
             $product_meta[$meta['post_id']][$meta['meta_key']] = $meta['meta_value'];
         }
-        
+
         // Get product categories in bulk
         $term_query = $wpdb->prepare("
         SELECT tr.object_id, t.name, t.slug
@@ -433,9 +441,9 @@ function dapfforwc_get_woocommerce_product_details()
         AND tt.taxonomy = 'product_cat'
         ORDER BY t.name ASC
         ", $batch_ids);
-        
+
         $term_results = $wpdb->get_results($term_query, ARRAY_A);
-        
+
         // Organize category data by product ID
         $product_categories = [];
         foreach ($term_results as $term) {
@@ -444,12 +452,12 @@ function dapfforwc_get_woocommerce_product_details()
                 'slug' => $term['slug']
             ];
         }
-        
+
         // Get thumbnail URLs in bulk
-        $thumbnail_ids = array_filter(array_map(function($id) use ($product_meta) {
+        $thumbnail_ids = array_filter(array_map(function ($id) use ($product_meta) {
             return isset($product_meta[$id]['_thumbnail_id']) ? $product_meta[$id]['_thumbnail_id'] : null;
         }, $batch_ids));
-        
+
         $thumbnail_urls = [];
         if (!empty($thumbnail_ids)) {
             $thumb_placeholders = implode(',', array_fill(0, count($thumbnail_ids), '%d'));
@@ -458,32 +466,32 @@ function dapfforwc_get_woocommerce_product_details()
             FROM {$wpdb->prefix}posts
             WHERE ID IN ($thumb_placeholders)
             ", $thumbnail_ids);
-            
+
             $thumb_results = $wpdb->get_results($thumb_query, ARRAY_A);
-            
+
             foreach ($thumb_results as $thumb) {
                 $thumbnail_urls[$thumb['ID']] = $thumb['guid'];
             }
         }
-        
+
         // Combine all data
         foreach ($results as $row) {
             $product_id = $row['ID'];
             $meta = $product_meta[$product_id] ?? [];
-            
+
             // Determine product type and pricing
             $product_type = $meta['_product_type'] ?? 'simple';
             $price = $meta['_price'] ?? '';
             $sale_price = $meta['_sale_price'] ?? '';
             $sale_active = !empty($sale_price) && $sale_price == $price;
-            
+
             // Get rating
             $rating = isset($meta['_wc_average_rating']) ? floatval($meta['_wc_average_rating']) : 0;
-            
+
             // Get product thumbnail
             $thumbnail_id = $meta['_thumbnail_id'] ?? '';
             $thumbnail_url = isset($thumbnail_urls[$thumbnail_id]) ? $thumbnail_urls[$thumbnail_id] : '';
-            
+
             // Add product to array
             $products[$product_id] = [
                 'ID' => $product_id,
@@ -491,7 +499,7 @@ function dapfforwc_get_woocommerce_product_details()
                 'post_name' => $row['post_name'],
                 'price' => $price,
                 'rating' => $rating,
-                'post_modified' => $row['post_modified'],
+                'post_modified' => $row['post_date'],
                 'post_date' => $row['post_date'],
                 'menu_order' => intval($row['menu_order']),
                 'on_sale' => $sale_active,
@@ -502,21 +510,21 @@ function dapfforwc_get_woocommerce_product_details()
                 'product_category' => $product_categories[$product_id] ?? [],
             ];
         }
-        
+
         // Move to next batch
         $offset += $batch_size;
     }
-    
+
     // Convert to indexed array for better JSON compatibility
     $product_data = ['products' => $products];
-    
+
     // Save to cache with error handling
     if (!is_writable(dirname($cache_file))) {
         error_log('Cache directory is not writable: ' . dirname($cache_file));
     } else {
         file_put_contents($cache_file, json_encode($product_data, JSON_UNESCAPED_UNICODE));
     }
-    
+
     return $product_data;
 }
 
