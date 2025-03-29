@@ -12,9 +12,9 @@ function dapfforwc_product_filter_shortcode($atts)
     $attributes_list = dapfforwc_get_shortcode_attributes_from_page($post->post_content ?? "", $shortcode);
     foreach ($attributes_list as $attributes) {
         // Ensure that the 'category', 'attribute', and 'terms' keys exist
-        $arrayCata = isset($attributes['category']) ? explode(",", $attributes['category']) : [];
-        $tagValue = isset($attributes['tags']) ? explode(",", $attributes['tags']) : [];
-        $termsValue = isset($attributes['terms']) ? explode(",", $attributes['terms']) : [];
+        $arrayCata = isset($attributes['category']) ? array_map('trim', explode(",", $attributes['category'])) : [];
+        $tagValue = isset($attributes['tags']) ? array_map('trim', explode(",", $attributes['tags'])) : [];
+        $termsValue = isset($attributes['terms']) ? array_map('trim', explode(",", $attributes['terms'])) : [];
         $filters = !empty($arrayCata) ? $arrayCata : (!empty($tagValue) ? $tagValue : $termsValue);
 
 
@@ -34,6 +34,7 @@ function dapfforwc_product_filter_shortcode($atts)
         isset($wcapf_options["default_filters"][$dapfforwc_slug]) && is_array($wcapf_options["default_filters"][$dapfforwc_slug]) ? $wcapf_options["default_filters"][$dapfforwc_slug] : [],
         isset($request_values) && is_array($request_values) ? $request_values : []
     ));
+    echo json_encode($default_filter);
     $ratings = array_values(array_filter($default_filter, 'is_numeric'));
 
     $atts = shortcode_atts([
