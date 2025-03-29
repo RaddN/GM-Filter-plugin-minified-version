@@ -34,7 +34,6 @@ function dapfforwc_product_filter_shortcode($atts)
         isset($wcapf_options["default_filters"][$dapfforwc_slug]) && is_array($wcapf_options["default_filters"][$dapfforwc_slug]) ? $wcapf_options["default_filters"][$dapfforwc_slug] : [],
         isset($request_values) && is_array($request_values) ? $request_values : []
     ));
-    echo json_encode($default_filter);
     $ratings = array_values(array_filter($default_filter, 'is_numeric'));
 
     $atts = shortcode_atts([
