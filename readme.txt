@@ -5,7 +5,7 @@ Contributors: plugincy
 Tags: product filters, ajax product filters, woocommerce ajax product filters, woocommerce filters, advanced product filters
 Requires at least: 4.7
 Tested up to: 7.0
-Stable tag: 3.0.1.11
+Stable tag: 3.0.1.12
 Requires PHP: 7.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -85,7 +85,7 @@ Yes, you can use the `[plugincy_filters attribute="your-attribute" terms="your-t
 
 == Changelog ==
 
-= 3.0.1.11 =
+= 3.0.1.12 =
 * Fixed AJAX filter counts and pagination so only published renderable products are counted and displayed.
 * Added Advanced Settings cache clear control and automatic filter cache invalidation for product and product taxonomy changes.
 * Improved support for `latest_products_table_with_custom_sort` shortcode attributes, including `per_page`.
