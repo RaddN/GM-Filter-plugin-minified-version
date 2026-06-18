@@ -29,17 +29,17 @@ function dapfforwc_settings_init() {
     ];
     update_option('wcapf_options', $wcapf_options);
 
-    register_setting('wcapf_options_group', 'wcapf_options');
+    register_setting('wcapf_options_group', 'wcapf_options', 'dapfforwc_sanitize_wcapf_options');
     
-    add_settings_section('dapfforwc_section', __('Filter Settings', 'gm-ajax-product-filter-for-woocommerce'), null, 'dapfforwc-admin');
+    add_settings_section('dapfforwc_section', __('Filter Settings', 'ajax-product-filter-for-woocommerce'), null, 'dapfforwc-admin');
 
     $fields = [
-        'show_categories' => __('Show Categories', 'gm-ajax-product-filter-for-woocommerce'),
-        'show_attributes' => __('Show Attributes', 'gm-ajax-product-filter-for-woocommerce'),
-        'show_tags' => __('Show Tags', 'gm-ajax-product-filter-for-woocommerce'),
-        'update_filter_options' => __('Update filter options', 'gm-ajax-product-filter-for-woocommerce'),
-        'show_loader' => __('Show Loader', 'gm-ajax-product-filter-for-woocommerce'),
-        'use_custom_template' => __('Use Custom Product Template', 'gm-ajax-product-filter-for-woocommerce'),
+        'show_categories' => __('Show Categories', 'ajax-product-filter-for-woocommerce'),
+        'show_attributes' => __('Show Attributes', 'ajax-product-filter-for-woocommerce'),
+        'show_tags' => __('Show Tags', 'ajax-product-filter-for-woocommerce'),
+        'update_filter_options' => __('Update filter options', 'ajax-product-filter-for-woocommerce'),
+        'show_loader' => __('Show Loader', 'ajax-product-filter-for-woocommerce'),
+        'use_custom_template' => __('Use Custom Product Template', 'ajax-product-filter-for-woocommerce'),
     ];
 
     if (is_array($fields) || is_object($fields)) {
@@ -49,35 +49,35 @@ function dapfforwc_settings_init() {
 }
     
     // custom code template
-    add_settings_field('custom_template_code', __('product custom template code', 'gm-ajax-product-filter-for-woocommerce'), 'dapfforwc_custom_template_code_render', 'dapfforwc-admin', 'dapfforwc_section');
+    add_settings_field('custom_template_code', __('product custom template code', 'ajax-product-filter-for-woocommerce'), 'dapfforwc_custom_template_code_render', 'dapfforwc-admin', 'dapfforwc_section');
 
     $default_style = get_option('wcapf_style_options') ?: [];
     update_option('wcapf_style_options', $default_style);
     // form style register
-    register_setting('wcapf_style_options_group', 'wcapf_style_options');
+    register_setting('wcapf_style_options_group', 'wcapf_style_options', 'dapfforwc_sanitize_nested_array');
 
         // Add Form Style section
     add_settings_section(
         'dapfforwc_style_section',
-        __('Form Style Options', 'gm-ajax-product-filter-for-woocommerce'),
+        __('Form Style Options', 'ajax-product-filter-for-woocommerce'),
         function () {
-            echo '<p>' . esc_html__('Select the filter box style for each attribute below. Additional options will appear based on your selection.', 'gm-ajax-product-filter-for-woocommerce') . '</p>';
+            echo '<p>' . esc_html__('Select the filter box style for each attribute below. Additional options will appear based on your selection.', 'ajax-product-filter-for-woocommerce') . '</p>';
         },
         'dapfforwc-style'
     );
 
 //   advance settings register
 $Advance_options = get_option('wcapf_advance_options') ?: [
-    'product_selector' => 'table.featured-conferences-table',
+    'product_selector' => 'table.featured-conferences-table tbody',
     'pagination_selector' => '.woocommerce-pagination ul.page-numbers',
-    'product_shortcode' => 'latest_products_table',
+    'product_shortcode' => 'latest_products_table_with_custom_sort',
 ];
     update_option('wcapf_advance_options', $Advance_options);
-    register_setting('dapfforwc_advance_settings', 'wcapf_advance_options');
+    register_setting('dapfforwc_advance_settings', 'wcapf_advance_options', 'dapfforwc_sanitize_nested_array');
     // Add the "Advance Settings" section
     add_settings_section(
         'dapfforwc_advance_settings_section',
-        __('Advance Settings', 'gm-ajax-product-filter-for-woocommerce'),
+        __('Advance Settings', 'ajax-product-filter-for-woocommerce'),
         null,
         'dapfforwc-advance-settings'
     );
@@ -85,7 +85,7 @@ $Advance_options = get_option('wcapf_advance_options') ?: [
     // Add the "Product Selector" field
     add_settings_field(
         'product_selector',
-        __('Product Selector', 'gm-ajax-product-filter-for-woocommerce'),
+        __('Product Selector', 'ajax-product-filter-for-woocommerce'),
         'dapfforwc_product_selector_callback',
         'dapfforwc-advance-settings',
         'dapfforwc_advance_settings_section'
@@ -93,7 +93,7 @@ $Advance_options = get_option('wcapf_advance_options') ?: [
     // Add the "Pagination Selector" field
     add_settings_field(
         'pagination_selector',
-        __('Pagination Selector', 'gm-ajax-product-filter-for-woocommerce'),
+        __('Pagination Selector', 'ajax-product-filter-for-woocommerce'),
         'dapfforwc_pagination_selector_callback',
         'dapfforwc-advance-settings',
         'dapfforwc_advance_settings_section'
@@ -101,13 +101,19 @@ $Advance_options = get_option('wcapf_advance_options') ?: [
     // Add the "Product shotcode Selector" field
     add_settings_field(
         'product_shortcode',
-        __('Product Shortcode Selector', 'gm-ajax-product-filter-for-woocommerce'),
+        __('Product Shortcode Selector', 'ajax-product-filter-for-woocommerce'),
         'dapfforwc_product_shortcode_callback',
+        'dapfforwc-advance-settings',
+        'dapfforwc_advance_settings_section'
+    );
+    add_settings_field(
+        'cache_tools',
+        __('Filter Cache', 'ajax-product-filter-for-woocommerce'),
+        'dapfforwc_cache_tools_callback',
         'dapfforwc-advance-settings',
         'dapfforwc_advance_settings_section'
     );
 
 }
 add_action('admin_init', 'dapfforwc_settings_init');
-
 

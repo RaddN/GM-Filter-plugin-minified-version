@@ -12,6 +12,8 @@ jQuery(document).ready(function($) {
     if (typeof dapfforwc_data !== 'undefined' && dapfforwc_data.dapfforwc_advance_settings) {
         advancesettings = dapfforwc_data.dapfforwc_advance_settings;
     }
+    const $productFilter = $('#product-filter');
+    const defaultFilterValues = normalizeFilterValues($productFilter.attr('data-default_filters') || $productFilter.data('default_filters') || []);
     var rfilterbuttonsId = $('.rfilterbuttons').attr('id');
     var orderby;
     syncCheckboxSelections();
@@ -38,26 +40,42 @@ jQuery(document).ready(function($) {
 
     var rfiltercurrentUrl = window.location.href;
     var path = window.location.pathname;
-    var currentPage = path==="/"? dapfforwc_front_page_slug : path.replace(/^\/|\/$/g, '');
+    var shortcodeCurrentPage = $productFilter.data('current_page_slug') || '';
+    var currentPage = shortcodeCurrentPage || (path==="/"? dapfforwc_front_page_slug : path.replace(/^\/|\/$/g, ''));
+    var filterBaseUrl = $productFilter.data('base_url') || window.location.href;
+    const pageRouteValues = normalizeFilterValues(currentPage);
+    const urlExcludedFilterValues = new Set(defaultFilterValues.concat(pageRouteValues));
+    if (window.location.search.indexOf('preview=true') !== -1) {
+        filterBaseUrl = window.location.href;
+    }
     rfiltercurrentUrl = rfiltercurrentUrl.split('?')[0];
     const urlParams = new URLSearchParams(window.location.search);
     const gmfilter = urlParams.get('filters');
+    const pathFilter = getPathFilters();
     
-    if (typeof dapfforwc_data !== 'undefined' && dapfforwc_data.slug) {
+    if (typeof dapfforwc_data !== 'undefined' && dapfforwc_data.dapfforwc_slug) {
         
-        const slugArray = dapfforwc_data.slug.split('/').filter(value => value !== '');
+        const slugArray = dapfforwc_data.dapfforwc_slug.split('/').filter(value => value !== '');
         if (slugArray.length > 0) {
             const filtersString = slugArray.join(',');
             applyFiltersFromUrl(filtersString);
-            updateUrlFilters(); 
-        } 
+            updateUrlFilters();
+        }
     }else if(gmfilter){
         const slugtoArray = gmfilter.split('/').filter(value => value !== '');
         if (slugtoArray.length > 0) {
             const filtersString = slugtoArray.join(',');
             applyFiltersFromUrl(filtersString);
-            updateUrlFilters(); 
-        } 
+            updateUrlFilters();
+        }
+    }
+    else if(pathFilter){
+        const slugtoArray = pathFilter.split('/').filter(value => value !== '');
+        if (slugtoArray.length > 0) {
+            const filtersString = slugtoArray.join(',');
+            applyFiltersFromUrl(filtersString);
+            updateUrlFilters();
+        }
     }
     else if (anyFilterSelected()) {
         fetchFilteredProducts();
@@ -102,12 +120,12 @@ jQuery(document).ready(function($) {
         }
     });
 
-    return selectedValues;
+    return Array.from(new Set(selectedValues.filter(Boolean)));
 }
 
 
 function selectfromurl(){
-    let urlvalues = currentPage.split('/');
+    let urlvalues = getUrlFilterValues();
 urlvalues.forEach(value => {
     // Check the input checkbox
     if ($(`input[value="${value}"]`).length) {
@@ -186,7 +204,7 @@ function anyFilterSelected() {
         $('head').append(style);
     }
     function gatherFormData() {
-        const currentPageSlug = path === "/" ? path : path.replace(/^\/|\/$/g, '');
+        const currentPageSlug = shortcodeCurrentPage || (path === "/" ? path : path.replace(/^\/|\/$/g, ''));
         const formData = $('#product-filter').serialize();
         
         // price range
@@ -302,7 +320,7 @@ function anyFilterSelected() {
             return; // Early return if the string is empty
         }
     
-        const filterValues = filtersString.split(',').map(value => value.trim()); // Trim whitespace
+        const filterValues = normalizeFilterValues(filtersString).filter(shouldShowFilterInUrl);
         filterValues.forEach(value => {
             // Check the input checkbox
             if ($(`input[value="${value}"]`).length) {
@@ -329,14 +347,73 @@ function anyFilterSelected() {
                 selectedFilters.add($(this).val());
             });
         });
-        let filtersArray = Array.from(selectedFilters).filter(Boolean);
-        const filterUse = "filters/";
-        const newUrl = rfiltercurrentUrl 
-        ? (filtersArray.length !== 0 
-            ? `${rfiltercurrentUrl}${filterUse}${filtersArray.join('/')}` 
-            : `${rfiltercurrentUrl}${filtersArray.join('/')}`) 
-        : `${filtersArray.join('/')}`;
+        let filtersArray = Array.from(selectedFilters).filter(shouldShowFilterInUrl);
+        const filterUse = (wcapf_options && wcapf_options.filters_word_in_permalinks) ? wcapf_options.filters_word_in_permalinks.replace(/^\/|\/$/g, '') : 'filters';
+        const newUrl = buildFilterUrl(filterBaseUrl, filterUse, filtersArray);
         history.replaceState(null, '', newUrl);
+    }
+    function buildFilterUrl(baseUrl, filterUse, filtersArray) {
+        let url;
+        try {
+            url = new URL(baseUrl, window.location.origin);
+        } catch (error) {
+            url = new URL(window.location.href);
+        }
+        url.hash = '';
+        url.searchParams.delete('filters');
+
+        if (filtersArray.length === 0) {
+            return url.toString();
+        }
+
+        if (url.search) {
+            url.searchParams.set('filters', filtersArray.join('/'));
+            return url.toString();
+        }
+
+        url.pathname = url.pathname.replace(new RegExp(`/${filterUse}/.*$`), '/').replace(/\/?$/, '/');
+        url.pathname = `${url.pathname}${filterUse}/${filtersArray.map(encodeURIComponent).join('/')}/`;
+        return url.toString();
+    }
+    function getUrlFilterValues() {
+        const params = new URLSearchParams(window.location.search);
+        const queryFilters = params.get('filters') || '';
+        const filters = queryFilters || getPathFilters();
+        return normalizeFilterValues(filters).filter(shouldShowFilterInUrl);
+    }
+    function getPathFilters() {
+        const filterUse = (wcapf_options && wcapf_options.filters_word_in_permalinks) ? wcapf_options.filters_word_in_permalinks.replace(/^\/|\/$/g, '') : 'filters';
+        const marker = `/${filterUse}/`;
+        const markerIndex = window.location.pathname.indexOf(marker);
+        return markerIndex === -1 ? '' : window.location.pathname.slice(markerIndex + marker.length).replace(/^\/|\/$/g, '');
+    }
+    function normalizeFilterValues(values) {
+        let rawValues = [];
+        if (Array.isArray(values)) {
+            rawValues = values;
+        } else if (typeof values === 'string') {
+            const trimmed = values.trim();
+            if (trimmed.charAt(0) === '[') {
+                try {
+                    const parsedValues = JSON.parse(trimmed);
+                    rawValues = Array.isArray(parsedValues) ? parsedValues : [];
+                } catch (error) {
+                    rawValues = trimmed.split(/[\/,]+/);
+                }
+            } else {
+                rawValues = trimmed.split(/[\/,]+/);
+            }
+        }
+
+        rawValues = rawValues.filter((value, index, allValues) => {
+            return value !== 'page' && allValues[index - 1] !== 'page';
+        });
+
+        return Array.from(new Set(rawValues.map(value => String(value).trim()).filter(Boolean)));
+    }
+    function shouldShowFilterInUrl(value) {
+        value = String(value || '').trim();
+        return value !== '' && !urlExcludedFilterValues.has(value);
     }
     // create list of current selected filter
     function selectedFilterShowProductTop(){

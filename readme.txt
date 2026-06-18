@@ -1,24 +1,24 @@
-=== GM AJAX Product Filter for WooCommerce ===
+=== AJAX Product Filter for WooCommerce ===
 
-Plugin Name: GM AJAX Product Filter for WooCommerce
+Plugin Name: AJAX Product Filter for WooCommerce
 Contributors: plugincy
 Tags: product filters, ajax product filters, woocommerce ajax product filters, woocommerce filters, advanced product filters
 Requires at least: 4.7
-Tested up to: 6.7
-Stable tag: 3.0.1
+Tested up to: 7.0
+Stable tag: 3.0.1.11
 Requires PHP: 7.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-GM AJAX Product Filter for WooCommerce to filter products by attributes, categories, and tags using AJAX for seamless user experience.
+AJAX Product Filter for WooCommerce to filter products by attributes, categories, and tags using AJAX for seamless user experience.
 
 == Description ==
 
-GM AJAX Product Filter for WooCommerce is the ultimate solution for WooCommerce store owners who want to provide their customers with a seamless and efficient shopping experience. With lightning-fast AJAX technology, customizable filtering options, and a user-friendly interface, this WooCommerce AJAX product filter plugin empowers you to enhance product discoverability and boost conversions effortlessly.
+AJAX Product Filter for WooCommerce is the ultimate solution for WooCommerce store owners who want to provide their customers with a seamless and efficient shopping experience. With lightning-fast AJAX technology, customizable filtering options, and a user-friendly interface, this WooCommerce AJAX product filter plugin empowers you to enhance product discoverability and boost conversions effortlessly.
 
-Whether you want to let users filter by price, category, tags, or attributes like size and color, this WooCommerce attribute filter plugin has everything you need. The flexibility of GM AJAX Product Filter for WooCommerce ensures it works perfectly with custom themes and supports unlimited filters to meet the unique needs of your store.
+Whether you want to let users filter by price, category, tags, or attributes like size and color, this WooCommerce attribute filter plugin has everything you need. The flexibility of AJAX Product Filter for WooCommerce ensures it works perfectly with custom themes and supports unlimited filters to meet the unique needs of your store.
 
-[&raquo; Demos](https://plugincy.com/gm-ajax-product-filter-for-woocommerce/) | [&raquo; More info](https://plugincy.com/gm-ajax-product-filter-for-woocommerce/)
+[&raquo; Demos](https://plugincy.com/ajax-product-filter-for-woocommerce/) | [&raquo; More info](https://plugincy.com/ajax-product-filter-for-woocommerce/)
 
 = 👉️ Key Features: =
 
@@ -63,7 +63,7 @@ Whether you want to let users filter by price, category, tags, or attributes lik
 From your WordPress dashboard
 
 1. **Visit** Plugins > Add New
-2. **Search** for "GM AJAX Product Filter for WooCommerce"
+2. **Search** for "AJAX Product Filter for WooCommerce"
 3. **Activate** the plugin from your Plugins page
 4. Configure filter settings in the WooCommerce settings panel under "Product Filter."
 
@@ -72,7 +72,7 @@ From your WordPress dashboard
 == Frequently Asked Questions ==
 
 = Is this plugin compatible with my theme? =  
-Yes! GM AJAX Product Filter for WooCommerce is compatible with most WordPress themes, including custom and premium themes.
+Yes! AJAX Product Filter for WooCommerce is compatible with most WordPress themes, including custom and premium themes.
 
 = How can I configure the filter options? =
 Navigate to the wordpress admin, locate the "Product Filters" section, and customize the filter options based on your store requirements.
@@ -85,6 +85,12 @@ Yes, you can use the `[plugincy_filters attribute="your-attribute" terms="your-t
 
 == Changelog ==
 
+= 3.0.1.11 =
+* Fixed AJAX filter counts and pagination so only published renderable products are counted and displayed.
+* Added Advanced Settings cache clear control and automatic filter cache invalidation for product and product taxonomy changes.
+* Improved support for `latest_products_table_with_custom_sort` shortcode attributes, including `per_page`.
+* Improved filter URL handling for preview/query-string pages and refreshed filter-button styling.
+
 = 1.0.0 =
 * Initial release.
 * Added AJAX filtering by category, tag, and attribute.
@@ -93,4 +99,4 @@ Yes, you can use the `[plugincy_filters attribute="your-attribute" terms="your-t
 
 == Additional Information ==
 
-**GM AJAX Product Filter for WooCommerce** is designed with flexibility, performance, and user experience in mind. If you encounter any issues or need assistance, our dedicated support team is ready to help.
+**AJAX Product Filter for WooCommerce** is designed with flexibility, performance, and user experience in mind. If you encounter any issues or need assistance, our dedicated support team is ready to help.

@@ -24,6 +24,14 @@ function dapfforwc_admin_page_content() {
     <div class="wrap wcapf_admin">
         <h1>Manage WooCommerce Product Filters</h1>
         <?php settings_errors(); // Displays success or error notices
+        if (isset($_GET['dapfforwc_cache_cleared'])) {
+            $deleted_count = absint($_GET['dapfforwc_cache_cleared']);
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html(sprintf(
+                /* translators: %d: number of deleted cache files. */
+                __('Filter cache cleared. Deleted %d cache file(s).', 'ajax-product-filter-for-woocommerce'),
+                $deleted_count
+            )) . '</p></div>';
+        }
         $nonce = wp_create_nonce('dapfforwc_tab_nonce');
         ?>
         <h2 class="nav-tab-wrapper">

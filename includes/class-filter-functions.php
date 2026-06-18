@@ -19,11 +19,16 @@ class dapfforwc_Filter_Functions
         $currentpage_slug = $this->get_current_page_slug();
         $currentpage_slug = $currentpage_slug == "/" ? $dapfforwc_front_page_slug : $currentpage_slug;
         $orderby = $this->get_orderby() !== "" ? $this->get_orderby() : ($wcapf_options['product_show_settings'][$currentpage_slug]['orderby'] ?? 'date');
-        $default_filter = $this->get_default_filter();
+        $selected_filter = $this->get_default_filter();
+        $base_filter = isset($wcapf_options["default_filters"][$currentpage_slug]) && is_array($wcapf_options["default_filters"][$currentpage_slug])
+            ? dapfforwc_normalize_filter_values($wcapf_options["default_filters"][$currentpage_slug])
+            : [];
+        $default_filter = dapfforwc_normalize_filter_values(array_merge($base_filter, $selected_filter));
         $ratings = array_values(array_filter($default_filter, 'is_numeric'));
-        $product_details = array_values(dapfforwc_get_woocommerce_product_details()["products"] ?? []);
         $product_details_json = dapfforwc_get_woocommerce_product_details()["products"] ?? [];
+        $product_details = array_values($product_details_json);
         $second_operator = strtoupper($wcapf_options["product_show_settings"][$currentpage_slug]["operator_second"] ?? "IN");
+        $order = strtoupper($wcapf_options["product_show_settings"][$currentpage_slug]["order"] ?? "ASC");
 
         if (!empty($ratings)) {
             // Get product ids by rating
@@ -99,28 +104,8 @@ class dapfforwc_Filter_Functions
         if (!empty($products_id_by_rating)) {
             $products_ids = array_values(array_intersect($products_ids, $products_id_by_rating));
         }
-
-        $missing_product_ids = array_diff($products_ids, array_keys($product_details_json));
-        if (!empty($missing_product_ids)) {
-            $missing_products = wc_get_products(array('include' => $missing_product_ids));
-            foreach ($missing_products as $product) {
-                $product_details_json[$product->get_id()] = [
-                    'ID' => $product->get_id(),
-                    'post_title' => $product->get_title(),
-                    'post_name' => $product->get_slug(),
-                    'price' => $product->get_price(),
-                    'product_image' => $product->get_image(),
-                    'product_excerpt' => $product->get_short_description(),
-                    'rating' => $product->get_average_rating(),
-                    'product_category' => wc_get_product_category_list($product->get_id()),
-                    'product_sku' => $product->get_sku(),
-                    'product_stock' => $product->get_stock_quantity(),
-                    'on_sale' => $product->is_on_sale(),
-                    'menu_order' => $product->get_menu_order(),
-                    'post_modified' => $product->get_date_modified()->date('Y-m-d H:i:s')
-                ];
-            }
-        }
+        $products_ids = dapfforwc_get_constrained_filter_product_ids($base_filter, $selected_filter, $all_data, $product_details, $second_operator);
+        $products_ids = dapfforwc_filter_renderable_product_ids($products_ids, $product_details_json);
 
         // Order products based on $orderby
         if (!empty($orderby)) {
@@ -147,19 +132,21 @@ class dapfforwc_Filter_Functions
             });
             }
         }
+        if ('DESC' === $order) {
+            $products_ids = array_reverse($products_ids);
+        }
         $count_total_showing_product = count($products_ids);
         $updated_filters = dapfforwc_get_updated_filters($products_ids);
         $filterform = dapfforwc_filter_form($updated_filters, $default_filter);
-        $cache_file = __DIR__ . '/permalinks_cache.json';
         $cache_time = 12 * 60 * 60; // 12 hours in seconds
 
-        if (file_exists($cache_file) && (time() - filemtime($cache_file)) < $cache_time) {
-            $permalinks = json_decode(file_get_contents($cache_file), true);
-        } else {
+        $permalinks = dapfforwc_read_cache('permalinks_cache.json', $cache_time);
+        if (!is_array($permalinks)) {
             $permalinks = get_option('woocommerce_permalinks');
-            file_put_contents($cache_file, json_encode($permalinks));
+            dapfforwc_write_cache('permalinks_cache.json', $permalinks);
         }
-        $per_page = isset($wcapf_options["product_show_settings"][$currentpage_slug]["per_page"]) ? intval($wcapf_options["product_show_settings"][$currentpage_slug]["per_page"]) : 12;
+        $per_page = isset($wcapf_options["product_show_settings"][$currentpage_slug]["per_page"]) ? absint($wcapf_options["product_show_settings"][$currentpage_slug]["per_page"]) : 30;
+        $per_page = $per_page > 0 ? $per_page : 30;
         $total_pages = ceil($count_total_showing_product / $per_page);
         $start_index = ($paged - 1) * $per_page;
         $end_index = min($start_index + $per_page, $count_total_showing_product);
@@ -219,16 +206,21 @@ class dapfforwc_Filter_Functions
     {
         global $wcapf_options;
         // Get product details
-        $product_link = home_url($permalinks['product_base'] . '/' . $product['post_name']);
-        $product_title = $product['post_title'];
+        $product_id = absint($product['ID']);
+        $product_link = esc_url(home_url($permalinks['product_base'] . '/' . $product['post_name']));
+        $product_title = isset($product['post_title']) ? (string) $product['post_title'] : '';
+        $product_title_attr = esc_attr($product_title);
+        $product_title_html = esc_html($product_title);
         $product_price = $product['price'];
-        $product_image = $product['product_image'] === null ? '/wp-content/uploads/woocommerce-placeholder-300x300.png' : $product['product_image'];
+        $product_image = empty($product['product_image']) ? wc_placeholder_img_src('woocommerce_thumbnail') : $product['product_image'];
+        $product_image = esc_url($product_image);
         $product_excerpt = $product['product_excerpt'];
-        $rating = $product['rating'];
+        $rating = isset($product['rating']) ? max(0, min(5, (float) $product['rating'])) : 0;
+        $rating_width = esc_attr($rating * 20);
         $product_category = $product['product_category'];
         $cata_output = "";
         foreach (is_array($product_category) ? $product_category : []  as $index => $category) {
-            $cata_output .= '<a href="' . home_url($permalinks['category_base'] . '/' . $category['slug']) . '">' . htmlspecialchars($category['name']) . '</a>';
+            $cata_output .= '<a href="' . esc_url(home_url($permalinks['category_base'] . '/' . $category['slug'])) . '">' . esc_html($category['name']) . '</a>';
             if ($index < count($product_category) - 1) {
                 $cata_output .= ', ';
             }
@@ -236,7 +228,7 @@ class dapfforwc_Filter_Functions
         $product_sku = $product['product_sku'];
         $product_stock = $product['product_stock'];
         $on_sale = $product['on_sale'];
-        $add_to_cart_url = esc_url(add_query_arg('add-to-cart', $product['ID'], $product_link));
+        $add_to_cart_url = esc_url(add_query_arg('add-to-cart', $product_id, $product_link));
         if (isset($wcapf_options['use_custom_template']) && $wcapf_options['use_custom_template'] === "on") {
 
             // Retrieve the custom template from the database
@@ -246,13 +238,13 @@ class dapfforwc_Filter_Functions
             $custom_template = str_replace('{{product_link}}', esc_url($product_link), $custom_template);
             $custom_template = str_replace('{{product_title}}', esc_html($product_title), $custom_template);
             $custom_template = str_replace('{{product_image}}', esc_url($product_image), $custom_template);
-            $custom_template = str_replace('{{product_excerpt}}', apply_filters('the_excerpt', $product_excerpt), $custom_template);
+            $custom_template = str_replace('{{product_excerpt}}', wp_kses_post(wpautop($product_excerpt)), $custom_template);
             $custom_template = str_replace('{{product_price}}', wp_kses_post($product_price), $custom_template);
             $custom_template = str_replace('{{product_category}}', $cata_output, $custom_template);
             $custom_template = str_replace('{{product_sku}}', esc_html($product_sku), $custom_template);
             $custom_template = str_replace('{{product_stock}}', esc_html($product_stock), $custom_template);
             $custom_template = str_replace('{{add_to_cart_url}}', $add_to_cart_url, $custom_template);
-            $custom_template = str_replace('{{product_id}}', esc_html($product['ID']), $custom_template);
+            $custom_template = str_replace('{{product_id}}', esc_html($product_id), $custom_template);
             $allowed_tags = array(
                 'a' => array(
                     'href' => array(),
@@ -308,11 +300,15 @@ class dapfforwc_Filter_Functions
                 ),
                 'ul' => array('class' => array()), // Allow unordered lists
                 'ol' => array('class' => array()), // Allow ordered lists
-                'script' => array(), // Be cautious with scripts
             );
 
             echo wp_kses(do_shortcode($custom_template), $allowed_tags);
         } else {
+            $product['ID'] = $product_id;
+            $product_title = $product_title_html;
+            $product_price = wp_kses_post($product_price);
+            $rating = esc_html($rating);
+
             echo '<li class="product type-product">
 	<div class="astra-shop-thumbnail-wrap">
 	<a href="' . $product_link . '" class="woocommerce-LoopProduct-link woocommerce-loop-product__link">
@@ -340,8 +336,8 @@ class dapfforwc_Filter_Functions
             'format' => '?paged=%#%',
             'current' => max(1, $paged),
             'total' => $total_pages,
-            'prev_text' => __('« Prev', 'gm-ajax-product-filter-for-woocommerce'),
-            'next_text' => __('Next »', 'gm-ajax-product-filter-for-woocommerce'),
+            'prev_text' => __('« Prev', 'ajax-product-filter-for-woocommerce'),
+            'next_text' => __('Next »', 'ajax-product-filter-for-woocommerce'),
             'type' => 'array',
         ));
 

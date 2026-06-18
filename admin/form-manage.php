@@ -50,7 +50,7 @@ function dapfforwc_custom_template_code_render() {
     </div>
     <textarea style="display:none;" id="custom_template_input" name="wcapf_options[custom_template_code]" rows="10" cols="50" class="large-text"><?php if(isset($wcapf_options['custom_template_code'])){echo esc_textarea($wcapf_options['custom_template_code']); } ?></textarea>
     <div id="code-editor"></div>
-    <p class="description"><?php esc_html_e('Enter your custom template code here.', 'gm-ajax-product-filter-for-woocommerce'); ?></p>
+    <p class="description"><?php esc_html_e('Enter your custom template code here.', 'ajax-product-filter-for-woocommerce'); ?></p>
 </div>
 
 
@@ -85,6 +85,16 @@ function dapfforwc_pages_render() {
 
 
 // Helper function to sanitize nested arrays.
+function dapfforwc_sanitize_wcapf_options($array) {
+    $sanitized_array = dapfforwc_sanitize_nested_array($array);
+
+    if (isset($array['custom_template_code'])) {
+        $sanitized_array['custom_template_code'] = wp_kses_post(wp_unslash($array['custom_template_code']));
+    }
+
+    return $sanitized_array;
+}
+
 function dapfforwc_sanitize_nested_array($array) {
     $sanitized_array = array();
     if (is_array($array) || is_object($array)) {

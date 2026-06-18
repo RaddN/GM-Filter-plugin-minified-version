@@ -1,20 +1,22 @@
 <?php
 
 /**
- * Plugin Name: GM AJAX Product Filter for WooCommerce
+ * Plugin Name: AJAX Product Filter for WooCommerce
  * Plugin URI:  https://plugincy.com/
  * Description: A WooCommerce plugin to filter products by attributes, categories, and tags using AJAX for seamless user experience.
- * Version:     3.0.1
+ * Version:     3.0.1.11
  * Author:      Plugincy
  * Author URI:  https://plugincy.com
  * License:     GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: gm-ajax-product-filter-for-woocommerce
+ * Text Domain: ajax-product-filter-for-woocommerce
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
+
+define('DAPFFORWC_VERSION', '3.0.1.11');
 
 // Global Variables
 global $wcapf_options, $dapfforwc_advance_settings, $dapfforwc_slug;
@@ -36,8 +38,12 @@ function dapfforwc_check_woocommerce()
     if (!class_exists('WooCommerce')) {
         add_action('admin_notices', 'dapfforwc_missing_woocommerce_notice');
     } else {
+        require_once plugin_dir_path(__FILE__) . 'includes/cache-functions.php';
+        dapfforwc_register_cache_invalidation_hooks();
+
         if (is_admin()) {
             require_once plugin_dir_path(__FILE__) . 'admin/admin-page.php';
+            add_action('admin_post_dapfforwc_clear_cache', 'dapfforwc_handle_clear_cache');
         }
         require_once plugin_dir_path(__FILE__) . 'includes/filter-template.php';
         add_action('wp_enqueue_scripts', 'dapfforwc_enqueue_scripts');
@@ -54,7 +60,11 @@ function dapfforwc_check_woocommerce()
 
 function dapfforwc_missing_woocommerce_notice()
 {
-    echo '<div class="notice notice-error"><p><strong>' . esc_html__('Filter Plugin', 'gm-ajax-product-filter-for-woocommerce') . '</strong> ' . esc_html__('requires WooCommerce to be installed and activated.', 'gm-ajax-product-filter-for-woocommerce') . '</p></div>';
+    if (!current_user_can('activate_plugins')) {
+        return;
+    }
+
+    echo '<div class="notice notice-error"><p><strong>' . esc_html__('Filter Plugin', 'ajax-product-filter-for-woocommerce') . '</strong> ' . esc_html__('requires WooCommerce to be installed and activated.', 'ajax-product-filter-for-woocommerce') . '</p></div>';
 }
 
 // Enqueue scripts and styles
@@ -66,11 +76,11 @@ function dapfforwc_enqueue_scripts()
     $script_path = 'assets/js/permalinksfilter.js';
     $dapfforwc_slug =  '';
 
-    wp_enqueue_script($script_handle, plugin_dir_url(__FILE__) . $script_path, ['jquery'], '3.0.1', true);
+    wp_enqueue_script($script_handle, plugin_dir_url(__FILE__) . $script_path, ['jquery'], DAPFFORWC_VERSION, true);
     wp_localize_script($script_handle, 'dapfforwc_data', compact('wcapf_options', 'dapfforwc_slug', 'dapfforwc_advance_settings', 'dapfforwc_front_page_slug'));
     wp_localize_script($script_handle, 'dapfforwc_ajax', ['ajax_url' => admin_url('admin-ajax.php')]);
 
-    wp_enqueue_style('filter-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '3.0.1');
+    wp_enqueue_style('filter-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], DAPFFORWC_VERSION);
 }
 
 function dapfforwc_admin_scripts($hook)
@@ -78,11 +88,11 @@ function dapfforwc_admin_scripts($hook)
     if ($hook !== 'toplevel_page_dapfforwc-admin') {
         return; // Load only on the plugin's admin page
     }
-    wp_enqueue_style('dapfforwc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/admin-style.css', [], '3.0.1');
+    wp_enqueue_style('dapfforwc-admin-style', plugin_dir_url(__FILE__) . 'assets/css/admin-style.css', [], DAPFFORWC_VERSION);
     wp_enqueue_style('dapfforwc-admin-codemirror-style', plugin_dir_url(__FILE__) . 'assets/css/codemirror.min.css', [], '5.65.2');
     wp_enqueue_script('dapfforwc-admin-codemirror-script', plugin_dir_url(__FILE__) . 'assets/js/codemirror.min.js', [], '5.65.2', true);
     wp_enqueue_script('dapfforwc-admin-xml-script', plugin_dir_url(__FILE__) . 'assets/js/xml.min.js', [], '5.65.2', true);
-    wp_enqueue_script('dapfforwc-admin-script', plugin_dir_url(__FILE__) . 'assets/js/admin-script.js', [], '3.0.1', true);
+    wp_enqueue_script('dapfforwc-admin-script', plugin_dir_url(__FILE__) . 'assets/js/admin-script.js', [], DAPFFORWC_VERSION, true);
 }
 
 function dapfforwc_filter_products()
