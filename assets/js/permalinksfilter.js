@@ -14,14 +14,98 @@ jQuery(document).ready(function($) {
     }
     const $productFilter = $('#product-filter');
     const defaultFilterValues = normalizeFilterValues($productFilter.attr('data-default_filters') || $productFilter.data('default_filters') || []);
-    var rfilterbuttonsId = $('.rfilterbuttons').attr('id');
+    var rfilterbuttonsId = $('.rfilterbuttons').first().attr('id');
     var orderby;
+    $('.dapfforwc-active-filters').parent().addClass('dapfforwc-filter-toolbar');
     syncCheckboxSelections();
+    updateSingleFilterNav();
+    updateActiveFilterNav();
+    $('#product-filter').on('click', '.dapfforwc-filter-toggle', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const $button = $(this);
+        const $group = $button.closest('.filter-group');
+        const isCollapsed = !$group.hasClass('is-collapsed');
+
+        $group.toggleClass('is-collapsed', isCollapsed);
+        $button.attr('aria-expanded', isCollapsed ? 'false' : 'true');
+    });
+
+    $('#product-filter').on('click', '.dapfforwc-view-all', function(event) {
+        event.preventDefault();
+
+        const $button = $(this);
+        const $group = $button.closest('.filter-group');
+        const isExpanded = !$group.hasClass('is-expanded');
+        const collapsedText = $button.data('collapsed-text') || $button.find('span').text();
+        const expandedText = $button.data('expanded-text') || 'Show less';
+
+        $group.toggleClass('is-expanded', isExpanded);
+        $button.find('span').text(isExpanded ? expandedText : collapsedText);
+    });
     
     // Initialize filters and handle changes
     
     $('#product-filter, .rfilterbuttons').on('change','.filter-checkbox', handleFilterChange);
     $('#product-filter, .rfilterbuttons').on('submit', handleFilterChange);
+    $(document).on('click', '.dapfforwc-single-filter-arrow', function(event) {
+        event.preventDefault();
+
+        const $button = $(this);
+        const $nav = $button.closest('.dapfforwc-single-filter-nav');
+        const list = $nav.find('.rfilterbuttons ul').get(0);
+
+        if (!list) {
+            return;
+        }
+
+        const direction = $button.hasClass('dapfforwc-single-filter-arrow-prev') ? -1 : 1;
+        list.scrollBy({
+            left: direction * Math.max(160, Math.round(list.clientWidth * 0.75)),
+            behavior: 'smooth'
+        });
+        setTimeout(updateSingleFilterNav, 250);
+        setTimeout(updateSingleFilterNav, 600);
+    });
+    $(document).on('click', '.dapfforwc-active-filter-arrow', function(event) {
+        event.preventDefault();
+
+        const $button = $(this);
+        const list = $button.closest('.dapfforwc-active-filters').find('.dapfforwc-active-filter-list').get(0);
+
+        if (!list) {
+            return;
+        }
+
+        const direction = $button.hasClass('dapfforwc-active-filter-arrow-prev') ? -1 : 1;
+        list.scrollBy({
+            left: direction * Math.max(160, Math.round(list.clientWidth * 0.75)),
+            behavior: 'smooth'
+        });
+        setTimeout(updateActiveFilterNav, 250);
+        setTimeout(updateActiveFilterNav, 600);
+    });
+    $(document).on('scroll', '.rfilterbuttons ul', updateSingleFilterNav);
+    $(document).on('scroll', '.dapfforwc-active-filter-list', updateActiveFilterNav);
+    $(window).on('resize', function() {
+        updateSingleFilterNav();
+        updateActiveFilterNav();
+    });
+    $('.dapfforwc-active-filters, .rfilterselected').on('click', '.dapfforwc-active-filter-remove', function(event) {
+        event.preventDefault();
+
+        setFilterValueChecked($(this).data('filter-value'), false);
+        refreshFiltersAfterSelectionChange();
+    });
+    $('.dapfforwc-active-filters, .rfilterselected').on('click', '.dapfforwc-active-filter-clear', function(event) {
+        event.preventDefault();
+
+        store_selected_values().filter(shouldShowFilterInUrl).forEach(function(value) {
+            setFilterValueChecked(value, false);
+        });
+        refreshFiltersAfterSelectionChange();
+    });
     $('.woocommerce-ordering select').on('change', function(event) {
         // Prevent the default form submission and page reload
         event.preventDefault();
@@ -93,11 +177,21 @@ jQuery(document).ready(function($) {
                 $(this).prop('checked', isChecked);
             }
         });
-        
+
+        refreshFiltersAfterSelectionChange();
+    }
+
+    function refreshFiltersAfterSelectionChange() {
         selectedValesbyuser = store_selected_values();
         updateUrlFilters();
-        if (!anyFilterSelected()) return location.reload();
         selectedFilterShowProductTop();
+        syncSingleFilterState();
+        updateSingleFilterNav();
+
+        if (!anyFilterSelected()) {
+            return location.reload();
+        }
+
         $('#roverlay').show();
         $('#loader').show();
         fetchFilteredProducts();
@@ -167,6 +261,7 @@ function anyFilterSelected() {
                 }
                 $(paginationSelector_shortcode ?? pagination_selector).html(response.data.pagination);
                 syncCheckboxSelections();
+                selectedFilterShowProductTop();
             } else {
                 console.error('Error:', response.message);
                 
@@ -255,30 +350,76 @@ function anyFilterSelected() {
     }
     function syncCheckboxSelections() {
         const $list = $('.rfilterbuttons ul').empty();
-        $('#product-filter #' + rfilterbuttonsId + ' input').each(function() {
-            const value = $(this).val();
-            const checked = $(this).is(':checked');
-            const type = this.type;
-            $list.append(createCheckboxListItem(value, checked, type));
-        });
-        $('#product-filter #' + rfilterbuttonsId + ' option').each(function(index) {
-            // Skip the first option (index 0)
-            if (index === 0) {
-                return; // Skip this iteration
-            }
-            const value = $(this).val();
-            const checked = $(this).is(':checked');
-            const type = this.type;
-        
-            $list.append(createCheckboxListItem(value, checked, type));
-        });
+        if (!rfilterbuttonsId) {
+            return;
+        }
+        const currentOptions = getCurrentSingleFilterOptions();
+        const options = currentOptions.length ? currentOptions : getSingleFilterShortcodeOptions();
+
+        for (const option of options) {
+            $list.append(createCheckboxListItem(option.slug, isFilterValueChecked(option.slug), 'checkbox', option.name));
+        }
         attachCheckboxClickEvents();
         attachMainFilterChangeEvents();
+        $('.rfilterbuttons ul').off('scroll.dapfforwcNav').on('scroll.dapfforwcNav', updateSingleFilterNav);
+        scrollCheckedSingleFilterIntoView();
+        updateSingleFilterNav();
     }
-    function createCheckboxListItem(value, checked, type) {
-        const formattedLabel = value.split('-').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
+    function getCurrentSingleFilterOptions() {
+        const options = [];
+
+        $('#product-filter #' + rfilterbuttonsId + ' input').each(function() {
+            const $input = $(this);
+            const label = $input.closest('label').find('.dapfforwc-option-text').first().text().trim() || $input.closest('label').text().trim();
+
+            options.push({
+                slug: $input.val(),
+                name: label || formatFilterLabel($input.val())
+            });
+        });
+        $('#product-filter #' + rfilterbuttonsId + ' option').each(function(index) {
+            if (index === 0) {
+                return;
+            }
+
+            options.push({
+                slug: $(this).val(),
+                name: $(this).text().trim() || formatFilterLabel($(this).val())
+            });
+        });
+
+        return options.filter(function(option) {
+            return option.slug;
+        });
+    }
+    function getSingleFilterShortcodeOptions() {
+        const rawOptions = $('.rfilterbuttons').first().attr('data-filter-options') || '[]';
+
+        try {
+            const parsedOptions = JSON.parse(rawOptions);
+
+            if (!Array.isArray(parsedOptions)) {
+                return [];
+            }
+
+            return parsedOptions.filter(function(option) {
+                return option && option.slug;
+            });
+        } catch (error) {
+            return [];
+        }
+    }
+    function isFilterValueChecked(value) {
+        const escapedValue = escapeSelectorValue(value);
+
+        if ($(`#product-filter input[value="${escapedValue}"]:checked, #product-filter option[value="${escapedValue}"]:selected`).length) {
+            return true;
+        }
+
+        return selectedValesbyuser.indexOf(value) !== -1;
+    }
+    function createCheckboxListItem(value, checked, type, label) {
+        const formattedLabel = label || formatFilterLabel(value);
         return $('<li></li>').addClass(checked ? 'checked' : '').append(
             $('<input>', {
                 name: 'attribute[' + rfilterbuttonsId + '][]',
@@ -309,9 +450,10 @@ function anyFilterSelected() {
     }
 
     function attachMainFilterChangeEvents() {
-        $('#' + rfilterbuttonsId + ' input').on('change', function() {
+        $('#' + rfilterbuttonsId + ' input').off('change.dapfforwcSingle').on('change.dapfforwcSingle', function() {
             const relatedCheckbox = $(`.rfilterbuttons ul li input[value="${$(this).val()}"]`);
             relatedCheckbox.prop('checked', $(this).is(':checked')).closest('li').toggleClass('checked', $(this).is(':checked'));
+            updateSingleFilterNav();
         });
     }
 
@@ -415,35 +557,214 @@ function anyFilterSelected() {
         value = String(value || '').trim();
         return value !== '' && !urlExcludedFilterValues.has(value);
     }
+    function escapeSelectorValue(value) {
+        value = String(value || '');
+
+        if ($.escapeSelector) {
+            return $.escapeSelector(value);
+        }
+
+        if (window.CSS && window.CSS.escape) {
+            return window.CSS.escape(value);
+        }
+
+        return value.replace(/(["\\])/g, '\\$1');
+    }
+    function formatFilterLabel(value) {
+        return String(value || '').split('-').map(function(word) {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join(' ');
+    }
+    function getFilterMeta(value) {
+        const escapedValue = escapeSelectorValue(value);
+        const $matches = $(`#product-filter input[value="${escapedValue}"], #product-filter option[value="${escapedValue}"]`);
+        const groupPriority = ['popular-countries', 'conference-by-month', 'popular-cities', 'popular-topics', 'category', 'tag'];
+        let $match = $matches.first();
+
+        groupPriority.some(function(groupId) {
+            const $groupMatch = $matches.filter(function() {
+                return $(this).closest('.filter-group').attr('id') === groupId;
+            }).first();
+
+            if ($groupMatch.length) {
+                $match = $groupMatch;
+                return true;
+            }
+
+            return false;
+        });
+
+        const $group = $match.closest('.filter-group');
+        const label = $match.is('option')
+            ? $match.text().trim()
+            : ($match.closest('label').find('.dapfforwc-option-text').first().text().trim() || $match.closest('label').text().trim());
+        const iconHtml = $group.find('> .dapfforwc-filter-title .dapfforwc-filter-icon').first().html() || $group.find('.dapfforwc-filter-icon').first().html() || '';
+
+        return {
+            label: label || formatFilterLabel(value),
+            iconHtml: iconHtml
+        };
+    }
+    function createActiveFilterChip(value) {
+        const meta = getFilterMeta(value);
+        const $chip = $('<li></li>', {
+            class: 'dapfforwc-active-filter-chip',
+            'data-filter-value': value
+        });
+
+        if (meta.iconHtml) {
+            $chip.append($('<span></span>', {
+                class: 'dapfforwc-active-filter-icon',
+                'aria-hidden': 'true'
+            }).html(meta.iconHtml));
+        }
+
+        $chip.append($('<span></span>', {
+            class: 'dapfforwc-active-filter-label',
+            text: meta.label
+        }));
+        $chip.append($('<button></button>', {
+            type: 'button',
+            class: 'dapfforwc-active-filter-remove',
+            'data-filter-value': value,
+            'aria-label': 'Remove ' + meta.label
+        }).html('<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>'));
+
+        return $chip;
+    }
+    function setFilterValueChecked(value, checked) {
+        const escapedValue = escapeSelectorValue(value);
+
+        $(`#product-filter input[value="${escapedValue}"], .rfilterbuttons input[value="${escapedValue}"]`).prop('checked', checked);
+        $(`#product-filter option[value="${escapedValue}"]`).prop('selected', checked);
+        $(`.rfilterbuttons input[value="${escapedValue}"]`).closest('li').toggleClass('checked', checked);
+    }
+    function syncSingleFilterState() {
+        $('.rfilterbuttons input.filter-checkbox').each(function() {
+            $(this).closest('li').toggleClass('checked', $(this).is(':checked'));
+        });
+    }
+    function updateSingleFilterNav() {
+        $('.dapfforwc-single-filter-nav').each(function() {
+            const $nav = $(this);
+            const list = $nav.find('.rfilterbuttons ul').get(0);
+
+            if (!list) {
+                $nav.removeClass('has-overflow has-items has-single-item has-multiple-items is-at-start is-at-end');
+                updateFilterToolbarState($nav.closest('.dapfforwc-filter-toolbar'));
+                return;
+            }
+
+            const itemCount = $nav.find('.rfilterbuttons li').length;
+            const maxScroll = Math.max(0, list.scrollWidth - list.clientWidth);
+            const hasOverflow = itemCount > 1 && maxScroll > 2;
+            const isAtStart = list.scrollLeft <= 2;
+            const isAtEnd = list.scrollLeft >= maxScroll - 2;
+
+            $nav.toggleClass('has-items', itemCount > 0);
+            $nav.toggleClass('has-single-item', itemCount === 1);
+            $nav.toggleClass('has-multiple-items', itemCount > 1);
+            $nav.toggleClass('has-overflow', hasOverflow);
+            $nav.toggleClass('is-at-start', !hasOverflow || isAtStart);
+            $nav.toggleClass('is-at-end', !hasOverflow || isAtEnd);
+            $nav.find('.dapfforwc-single-filter-arrow-prev').prop('disabled', !hasOverflow || isAtStart);
+            $nav.find('.dapfforwc-single-filter-arrow-next').prop('disabled', !hasOverflow || isAtEnd);
+            updateFilterToolbarState($nav.closest('.dapfforwc-filter-toolbar'));
+        });
+    }
+    function updateActiveFilterNav() {
+        $('.dapfforwc-active-filters').each(function() {
+            const $nav = $(this);
+            const list = $nav.find('.dapfforwc-active-filter-list').get(0);
+            const itemCount = $nav.find('.dapfforwc-active-filter-chip').length;
+
+            if (!list || !itemCount || $nav.is('[hidden]')) {
+                if (!itemCount) {
+                    $nav.attr('hidden', true);
+                }
+                $nav.removeClass('has-active-filters has-overflow is-at-start is-at-end');
+                $nav.find('.dapfforwc-active-filter-arrow').prop('disabled', true);
+                updateFilterToolbarState($nav.closest('.dapfforwc-filter-toolbar'));
+                return;
+            }
+
+            const maxScroll = Math.max(0, list.scrollWidth - list.clientWidth);
+            const hasOverflow = itemCount > 1 && maxScroll > 2;
+            const isAtStart = list.scrollLeft <= 2;
+            const isAtEnd = list.scrollLeft >= maxScroll - 2;
+
+            $nav.addClass('has-active-filters');
+            $nav.toggleClass('has-overflow', hasOverflow);
+            $nav.toggleClass('is-at-start', !hasOverflow || isAtStart);
+            $nav.toggleClass('is-at-end', !hasOverflow || isAtEnd);
+            $nav.find('.dapfforwc-active-filter-arrow-prev').prop('disabled', !hasOverflow || isAtStart);
+            $nav.find('.dapfforwc-active-filter-arrow-next').prop('disabled', !hasOverflow || isAtEnd);
+            updateFilterToolbarState($nav.closest('.dapfforwc-filter-toolbar'));
+        });
+    }
+    function updateFilterToolbarState($toolbars) {
+        ($toolbars && $toolbars.length ? $toolbars : $('.dapfforwc-filter-toolbar')).each(function() {
+            const $toolbar = $(this);
+            const $active = $toolbar.children('.dapfforwc-active-filters');
+            const $single = $toolbar.children('.dapfforwc-single-filter-nav');
+            const hasActive = $active.length && !$active.is('[hidden]') && $active.find('.dapfforwc-active-filter-chip').length > 0;
+            const singleItemCount = $single.find('.rfilterbuttons li').length;
+
+            $toolbar.toggleClass('has-active-filters', !!hasActive);
+            $toolbar.toggleClass('has-single-filter', $single.length > 0);
+            $toolbar.toggleClass('has-single-filter-one-item', singleItemCount === 1);
+            $toolbar.toggleClass('has-single-filter-overflow', $single.hasClass('has-overflow'));
+        });
+    }
+    function scrollCheckedSingleFilterIntoView() {
+        $('.rfilterbuttons ul').each(function() {
+            const list = this;
+            const $checked = $(list).find('li.checked').first();
+
+            if (!$checked.length) {
+                return;
+            }
+
+            const targetLeft = $checked.position().left + list.scrollLeft - ((list.clientWidth - $checked.outerWidth()) / 2);
+            list.scrollLeft = Math.max(0, targetLeft);
+        });
+    }
     // create list of current selected filter
     function selectedFilterShowProductTop(){
-        // Clear existing content
-    $('.rfilterselected ul').empty();
-    for (let value of selectedValesbyuser) {
-        $('.rfilterselected ul').append(`
-            <li class="checked">
-                <input id="selected_${value}" type="checkbox" value="${value}" checked>
-                <label for="selected_${value}">${value.replace(/-/g, ' ')}</label>
-                <label style="font-size:12px;margin-left:5px;">x</label>
-            </li>`);
-    }}
+        const activeValues = selectedValesbyuser.filter(shouldShowFilterInUrl);
+        const $lists = $('.dapfforwc-active-filter-list, .rfilterselected ul').empty();
+        const $containers = $('.dapfforwc-active-filters, .rfilterselected');
+
+        if (!$lists.length) {
+            return;
+        }
+
+        if (!activeValues.length) {
+            $containers.attr('hidden', true).removeClass('has-active-filters has-overflow is-at-start is-at-end');
+            updateActiveFilterNav();
+            updateFilterToolbarState();
+            return;
+        }
+
+        activeValues.forEach(function(value) {
+            $lists.each(function() {
+                $(this).append(createActiveFilterChip(value));
+            });
+        });
+        $('.dapfforwc-active-filter-list').off('scroll.dapfforwcActiveNav').on('scroll.dapfforwcActiveNav', updateActiveFilterNav);
+        $containers.removeAttr('hidden').addClass('has-active-filters');
+        window.requestAnimationFrame(function() {
+            updateActiveFilterNav();
+            updateFilterToolbarState();
+        });
+    }
     selectedFilterShowProductTop();
-    $('.rfilterselected').on('change', 'li', function(e) {
-        const value = $(this).find('input[type="checkbox"]').val(); 
-        $(`#product-filter input[value="${value}"]`).prop('checked', false);
-        handleFilterChange(e);
-    });
     // for responsive
     function isMobile() {
         return $(window).width() <= 768;
     }
     function textChange() {
-        if (isMobile()) {
-            $('#product-filter .filter-group div .title').each(function() {
-                $(this).text($(this).text().split(' ').pop());
-            });
-            $('#product-filter .items').hide();
-        }
+        return;
     }
     textChange();
      $(document).ajaxComplete(function() {

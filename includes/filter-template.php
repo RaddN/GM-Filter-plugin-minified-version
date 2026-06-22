@@ -135,6 +135,7 @@ function dapfforwc_product_filter_shortcode($atts)
     ob_start();
 ?>
     <form id="product-filter" method="POST"
+        style="--dapfforwc-primary-color: <?php echo esc_attr(dapfforwc_get_primary_color()); ?>;"
         data-current_page_slug="<?php echo esc_attr($dapfforwc_slug); ?>"
         data-base_url="<?php echo esc_url(get_permalink(get_the_ID())); ?>"
         data-default_filters="<?php echo esc_attr(wp_json_encode($shortcode_filters)); ?>"
@@ -404,9 +405,14 @@ function dapfforwc_customSort($a, $b)
     return strcmp($a, $b);
 }
 
-function dapfforwc_render_filter_option($title, $value, $checked, $name)
+function dapfforwc_render_filter_option($title, $value, $checked, $name, $hidden = false)
 {
-    return '<label><input type="checkbox" class="filter-checkbox" name="' . esc_attr($name) . '[]" value="' . esc_attr($value) . '"' . $checked . '> ' . esc_html($title) . '</label>';
+    $classes = 'dapfforwc-filter-option';
+    if (!empty($hidden)) {
+        $classes .= ' dapfforwc-hidden-option';
+    }
+
+    return '<label class="' . esc_attr($classes) . '"><input type="checkbox" class="filter-checkbox" name="' . esc_attr($name) . '[]" value="' . esc_attr($value) . '"' . $checked . '> <span class="dapfforwc-option-text">' . esc_html($title) . '</span></label>';
 }
 
 function dapfforwc_product_filter_shortcode_single($atts)
@@ -417,9 +423,74 @@ function dapfforwc_product_filter_shortcode_single($atts)
         return '<p style="background:red;text-align: center;color: #fff;">Please provide an attribute slug.</p>';
     }
 
-    return '<form class="rfilterbuttons" id="' . esc_attr($atts['name']) . '"><ul></ul></form>';
+    $primary_color = function_exists('dapfforwc_get_primary_color') ? dapfforwc_get_primary_color() : '#c9a84c';
+    $filter_options = dapfforwc_get_single_filter_shortcode_options($atts['name']);
+
+    $output = '<div class="dapfforwc-single-filter-nav" style="--dapfforwc-primary-color: ' . esc_attr($primary_color) . ';">';
+    $output .= '<button type="button" class="dapfforwc-single-filter-arrow dapfforwc-single-filter-arrow-prev" aria-label="' . esc_attr__('Scroll previous filters', 'ajax-product-filter-for-woocommerce') . '">';
+    $output .= '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 18-6-6 6-6"></path></svg>';
+    $output .= '</button>';
+    $output .= '<form class="rfilterbuttons" id="' . esc_attr(sanitize_key($atts['name'])) . '" data-filter-options="' . esc_attr(wp_json_encode($filter_options)) . '"><ul></ul></form>';
+    $output .= '<button type="button" class="dapfforwc-single-filter-arrow dapfforwc-single-filter-arrow-next" aria-label="' . esc_attr__('Scroll next filters', 'ajax-product-filter-for-woocommerce') . '">';
+    $output .= '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"></path></svg>';
+    $output .= '</button>';
+    $output .= '</div>';
+
+    return $output;
 }
 add_shortcode('wcapf_product_filter_single', 'dapfforwc_product_filter_shortcode_single');
+
+function dapfforwc_get_single_filter_shortcode_options($filter_name)
+{
+    $filter_name = sanitize_key($filter_name);
+    $all_data = dapfforwc_get_woocommerce_attributes_with_terms();
+    $items = [];
+
+    if ('category' === $filter_name) {
+        $items = isset($all_data['categories']) && is_array($all_data['categories']) ? array_values($all_data['categories']) : [];
+    } elseif ('tag' === $filter_name) {
+        $items = isset($all_data['tags']) && is_array($all_data['tags']) ? array_values($all_data['tags']) : [];
+    } elseif (isset($all_data['attributes'][$filter_name]['terms']) && is_array($all_data['attributes'][$filter_name]['terms'])) {
+        $items = $all_data['attributes'][$filter_name]['terms'];
+    }
+
+    usort($items, function ($a, $b) {
+        return dapfforwc_customSort(
+            is_array($a) ? ($a['name'] ?? '') : '',
+            is_array($b) ? ($b['name'] ?? '') : ''
+        );
+    });
+
+    return array_values(array_filter(array_map(function ($item) {
+        if (!is_array($item) || empty($item['slug'])) {
+            return null;
+        }
+
+        return [
+            'slug' => sanitize_title((string) $item['slug']),
+            'name' => sanitize_text_field((string) ($item['name'] ?? $item['slug'])),
+        ];
+    }, $items)));
+}
+
+function dapfforwc_filter_active_shortcode()
+{
+    $primary_color = function_exists('dapfforwc_get_primary_color') ? dapfforwc_get_primary_color() : '#c9a84c';
+
+    $output = '<div class="dapfforwc-active-filters" style="--dapfforwc-primary-color: ' . esc_attr($primary_color) . ';" hidden aria-live="polite">';
+    $output .= '<button type="button" class="dapfforwc-active-filter-arrow dapfforwc-active-filter-arrow-prev" aria-label="' . esc_attr__('Scroll previous active filters', 'ajax-product-filter-for-woocommerce') . '">';
+    $output .= '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 18-6-6 6-6"></path></svg>';
+    $output .= '</button>';
+    $output .= '<ul class="dapfforwc-active-filter-list"></ul>';
+    $output .= '<button type="button" class="dapfforwc-active-filter-arrow dapfforwc-active-filter-arrow-next" aria-label="' . esc_attr__('Scroll next active filters', 'ajax-product-filter-for-woocommerce') . '">';
+    $output .= '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"></path></svg>';
+    $output .= '</button>';
+    $output .= '<button type="button" class="dapfforwc-active-filter-clear">' . esc_html__('Clear all', 'ajax-product-filter-for-woocommerce') . '</button>';
+    $output .= '</div>';
+
+    return $output;
+}
+add_shortcode('wcapf_filter_active', 'dapfforwc_filter_active_shortcode');
 
 
 function dapfforwc_get_updated_filters($product_ids)

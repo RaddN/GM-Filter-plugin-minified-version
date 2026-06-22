@@ -2556,3 +2556,15 @@
     at https://internationalconference.ca/wp-content/themes/astra/inc/assets/js/minified/block-editor-script.min.js?ver=4.13.4:1:15085
 [15869503ms] SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin "https://internationalconference.ca" from accessing a cross-origin frame.
     at https://internationalconference.ca/wp-content/themes/astra/inc/assets/js/minified/block-editor-script.min.js?ver=4.13.4:1:15085
+[15879514ms] SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin "https://internationalconference.ca" from accessing a cross-origin frame.
+    at https://internationalconference.ca/wp-content/themes/astra/inc/assets/js/minified/block-editor-script.min.js?ver=4.13.4:1:15085
+[15889503ms] SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin "https://internationalconference.ca" from accessing a cross-origin frame.
+    at https://internationalconference.ca/wp-content/themes/astra/inc/assets/js/minified/block-editor-script.min.js?ver=4.13.4:1:15085
+[15899516ms] SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin "https://internationalconference.ca" from accessing a cross-origin frame.
+    at https://internationalconference.ca/wp-content/themes/astra/inc/assets/js/minified/block-editor-script.min.js?ver=4.13.4:1:15085
+[15909517ms] SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin "https://internationalconference.ca" from accessing a cross-origin frame.
+    at https://internationalconference.ca/wp-content/themes/astra/inc/assets/js/minified/block-editor-script.min.js?ver=4.13.4:1:15085
+[15919514ms] SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin "https://internationalconference.ca" from accessing a cross-origin frame.
+    at https://internationalconference.ca/wp-content/themes/astra/inc/assets/js/minified/block-editor-script.min.js?ver=4.13.4:1:15085
+[15929538ms] SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin "https://internationalconference.ca" from accessing a cross-origin frame.
+    at https://internationalconference.ca/wp-content/themes/astra/inc/assets/js/minified/block-editor-script.min.js?ver=4.13.4:1:15085

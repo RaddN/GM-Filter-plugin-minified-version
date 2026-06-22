@@ -6,6 +6,7 @@ function dapfforwc_settings_init() {
     $wcapf_options = get_option('wcapf_options') ?: [
         'show_categories' =>0,
         'show_attributes' => "on",
+        'primary_color' => '#c9a84c',
         'show_tags' => 0,
         'show_price_range' => "",
         'show_search' => "",
@@ -36,6 +37,7 @@ function dapfforwc_settings_init() {
     $fields = [
         'show_categories' => __('Show Categories', 'ajax-product-filter-for-woocommerce'),
         'show_attributes' => __('Show Attributes', 'ajax-product-filter-for-woocommerce'),
+        'primary_color' => __('Primary Color', 'ajax-product-filter-for-woocommerce'),
         'show_tags' => __('Show Tags', 'ajax-product-filter-for-woocommerce'),
         'update_filter_options' => __('Update filter options', 'ajax-product-filter-for-woocommerce'),
         'show_loader' => __('Show Loader', 'ajax-product-filter-for-woocommerce'),
@@ -116,4 +118,3 @@ $Advance_options = get_option('wcapf_advance_options') ?: [
 
 }
 add_action('admin_init', 'dapfforwc_settings_init');
-
