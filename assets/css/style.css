@@ -1256,15 +1256,16 @@ body .dapfforwc-single-filter-nav.has-overflow .dapfforwc-single-filter-arrow {
     display: none;
   }
   body #product-filter .dapfforwc-mobile-filter-tab {
-    display: inline-flex;
+    display: inline-grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 6px;
     flex: 0 0 auto;
-    min-width: 98px;
-    max-width: 142px;
+    min-width: 112px;
+    max-width: 156px;
     min-height: 52px;
-    padding: 9px 11px;
+    padding: 9px 10px;
     border: 1px solid rgba(15, 37, 71, 0.08);
     border-radius: 8px;
     background: #fff;
@@ -1286,6 +1287,24 @@ body .dapfforwc-single-filter-nav.has-overflow .dapfforwc-single-filter-arrow {
     width: 17px;
     height: 17px;
   }
+  body #product-filter .dapfforwc-mobile-filter-tab-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  body #product-filter .dapfforwc-mobile-filter-tab-caret {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    color: #12284b;
+    transform: rotate(180deg);
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
+  body #product-filter .dapfforwc-mobile-filter-tab-caret svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+  }
   body #product-filter .dapfforwc-mobile-filter-tab.is-active {
     border-color: var(--dapfforwc-primary-color, #c9a84c);
     background: var(--dapfforwc-primary-color, #c9a84c);
@@ -1294,6 +1313,10 @@ body .dapfforwc-single-filter-nav.has-overflow .dapfforwc-single-filter-arrow {
   }
   body #product-filter .dapfforwc-mobile-filter-tab.is-active .dapfforwc-mobile-filter-tab-icon {
     color: #fff;
+  }
+  body #product-filter .dapfforwc-mobile-filter-tab.is-active .dapfforwc-mobile-filter-tab-caret {
+    color: #fff;
+    transform: rotate(0);
   }
   body #product-filter > .filter-group.attributes {
     display: block !important;
@@ -1316,6 +1339,10 @@ body .dapfforwc-single-filter-nav.has-overflow .dapfforwc-single-filter-arrow {
     border: 0 !important;
     box-shadow: none !important;
     overflow: visible !important;
+  }
+  body #product-filter .filter-group > .items,
+  body #product-filter .filter-group > .dapfforwc-view-all {
+    display: none !important;
   }
   body #product-filter .dapfforwc-filter-card.is-mobile-open {
     display: block !important;
