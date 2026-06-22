@@ -157,6 +157,26 @@ function dapfforwc_get_default_view_all_text($group_name)
     );
 }
 
+function dapfforwc_get_default_mobile_title($group_name)
+{
+    $defaults = [
+        'category' => __('Category', 'ajax-product-filter-for-woocommerce'),
+        'conference-by-month' => __('Month', 'ajax-product-filter-for-woocommerce'),
+        'popular-cities' => __('Cities', 'ajax-product-filter-for-woocommerce'),
+        'popular-countries' => __('Countries', 'ajax-product-filter-for-woocommerce'),
+        'popular-topics' => __('Topics', 'ajax-product-filter-for-woocommerce'),
+        'tag' => __('Tag', 'ajax-product-filter-for-woocommerce'),
+    ];
+
+    $group_name = sanitize_key($group_name);
+
+    if (isset($defaults[$group_name])) {
+        return $defaults[$group_name];
+    }
+
+    return dapfforwc_get_filter_group_title($group_name);
+}
+
 function dapfforwc_get_filter_group_title($group_name)
 {
     return ucwords(str_replace('-', ' ', sanitize_key($group_name)));
@@ -173,10 +193,12 @@ function dapfforwc_get_filter_group_ui_settings($group_name)
 
     $svg_icon = isset($settings['svg_icon']) && is_scalar($settings['svg_icon']) ? wp_kses((string) $settings['svg_icon'], dapfforwc_get_allowed_svg_tags()) : '';
     $view_all_text = isset($settings['view_all_text']) && is_scalar($settings['view_all_text']) ? sanitize_text_field((string) $settings['view_all_text']) : '';
+    $mobile_title = isset($settings['mobile_title']) && is_scalar($settings['mobile_title']) ? sanitize_text_field((string) $settings['mobile_title']) : '';
 
     return [
         'svg_icon' => $svg_icon !== '' ? $svg_icon : dapfforwc_get_default_taxonomy_icon($group_name),
         'view_all_text' => $view_all_text !== '' ? $view_all_text : dapfforwc_get_default_view_all_text($group_name),
+        'mobile_title' => $mobile_title !== '' ? $mobile_title : dapfforwc_get_default_mobile_title($group_name),
     ];
 }
 
@@ -193,7 +215,7 @@ function dapfforwc_render_filter_group_title($group_name, $items_id)
     $output = '<div class="title dapfforwc-filter-title">';
     $output .= '<span class="dapfforwc-filter-heading">';
     $output .= '<span class="dapfforwc-filter-icon" aria-hidden="true">' . wp_kses($settings['svg_icon'], dapfforwc_get_allowed_svg_tags()) . '</span>';
-    $output .= '<span class="dapfforwc-filter-title-text">' . esc_html($title) . '</span>';
+    $output .= '<span class="dapfforwc-filter-title-text" data-mobile-title="' . esc_attr($settings['mobile_title']) . '">' . esc_html($title) . '</span>';
     $output .= '</span>';
     $output .= '<button type="button" class="dapfforwc-filter-toggle" aria-expanded="true" aria-controls="' . esc_attr($items_id) . '" aria-label="' . esc_attr($toggle_label) . '">';
     $output .= '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m18 15-6-6-6 6"></path></svg>';

@@ -17,6 +17,7 @@ jQuery(document).ready(function($) {
     var rfilterbuttonsId = $('.rfilterbuttons').first().attr('id');
     var orderby;
     $('.dapfforwc-active-filters').parent().addClass('dapfforwc-filter-toolbar');
+    ensureMobileFilterTabs();
     syncCheckboxSelections();
     updateSingleFilterNav();
     updateActiveFilterNav();
@@ -26,6 +27,12 @@ jQuery(document).ready(function($) {
 
         const $button = $(this);
         const $group = $button.closest('.filter-group');
+
+        if (isMobile()) {
+            toggleMobileFilterGroup($group);
+            return;
+        }
+
         const isCollapsed = !$group.hasClass('is-collapsed');
 
         $group.toggleClass('is-collapsed', isCollapsed);
@@ -51,6 +58,7 @@ jQuery(document).ready(function($) {
     $('#product-filter, .rfilterbuttons').on('submit', handleFilterChange);
     $(document).on('click', '.dapfforwc-single-filter-arrow', function(event) {
         event.preventDefault();
+        event.stopPropagation();
 
         const $button = $(this);
         const $nav = $button.closest('.dapfforwc-single-filter-nav');
@@ -70,6 +78,7 @@ jQuery(document).ready(function($) {
     });
     $(document).on('click', '.dapfforwc-active-filter-arrow', function(event) {
         event.preventDefault();
+        event.stopPropagation();
 
         const $button = $(this);
         const list = $button.closest('.dapfforwc-active-filters').find('.dapfforwc-active-filter-list').get(0);
@@ -91,15 +100,19 @@ jQuery(document).ready(function($) {
     $(window).on('resize', function() {
         updateSingleFilterNav();
         updateActiveFilterNav();
+        ensureMobileFilterTabs();
+        syncMobileFilterGroupState();
     });
     $('.dapfforwc-active-filters, .rfilterselected').on('click', '.dapfforwc-active-filter-remove', function(event) {
         event.preventDefault();
+        event.stopPropagation();
 
         setFilterValueChecked($(this).data('filter-value'), false);
         refreshFiltersAfterSelectionChange();
     });
     $('.dapfforwc-active-filters, .rfilterselected').on('click', '.dapfforwc-active-filter-clear', function(event) {
         event.preventDefault();
+        event.stopPropagation();
 
         store_selected_values().filter(shouldShowFilterInUrl).forEach(function(value) {
             setFilterValueChecked(value, false);
@@ -763,25 +776,182 @@ function anyFilterSelected() {
     function isMobile() {
         return $(window).width() <= 768;
     }
+    function getMobileFilterGroups() {
+        return $('#product-filter .dapfforwc-filter-card').filter(function() {
+            const attributesWrapper = $(this).closest('#product-filter > .filter-group.attributes').get(0);
+
+            if (this.style.display === 'none') {
+                return false;
+            }
+
+            return !(attributesWrapper && attributesWrapper.style.display === 'none');
+        });
+    }
+    function getMobileFilterTitle($group) {
+        const $title = $group.find('> .dapfforwc-filter-title .dapfforwc-filter-title-text').first();
+        const mobileTitle = $title.attr('data-mobile-title') || '';
+
+        return mobileTitle.trim() || $title.text().trim();
+    }
+    function ensureMobileFilterTabs() {
+        const $form = $('#product-filter');
+
+        if (!$form.length) {
+            return;
+        }
+
+        let $shell = $form.children('.dapfforwc-mobile-filter-shell');
+        if (!$shell.length) {
+            $shell = $('<div></div>', {
+                class: 'dapfforwc-mobile-filter-shell',
+                'aria-label': 'Product filters'
+            }).append(
+                $('<button></button>', {
+                    type: 'button',
+                    class: 'dapfforwc-mobile-filter-icon',
+                    'aria-label': 'Filters'
+                }).html('<svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 5h18"></path><path d="M6 12h12"></path><path d="M10 19h4"></path></svg>'),
+                $('<div></div>', {
+                    class: 'dapfforwc-mobile-filter-tabs',
+                    role: 'tablist',
+                    'aria-label': 'Filter groups'
+                })
+            );
+            $form.prepend($shell);
+        }
+
+        const $groups = getMobileFilterGroups();
+        const $tabs = $shell.find('.dapfforwc-mobile-filter-tabs').empty();
+
+        if (!$groups.length) {
+            $shell.attr('hidden', true);
+            return;
+        }
+
+        $shell.removeAttr('hidden');
+
+        if (isMobile()) {
+            if (!$groups.filter('.is-mobile-open').length && !$form.hasClass('dapfforwc-mobile-tabs-ready')) {
+                const storedGroup = $form.data('mobileOpenGroup');
+                const $storedGroup = storedGroup ? $groups.filter('#' + escapeSelectorValue(storedGroup)).first() : $();
+                ($storedGroup.length ? $storedGroup : $groups.first()).addClass('is-mobile-open');
+            }
+            $form.addClass('dapfforwc-mobile-tabs-ready');
+        } else {
+            $form.removeClass('dapfforwc-mobile-tabs-ready');
+        }
+
+        $groups.each(function() {
+            const $group = $(this);
+            const groupId = $group.attr('id') || '';
+            const title = getMobileFilterTitle($group);
+            const iconHtml = $group.find('> .dapfforwc-filter-title .dapfforwc-filter-icon').first().html() || '';
+            const isActive = $group.hasClass('is-mobile-open');
+            const $tab = $('<button></button>', {
+                type: 'button',
+                class: 'dapfforwc-mobile-filter-tab' + (isActive ? ' is-active' : ''),
+                role: 'tab',
+                'aria-selected': isActive ? 'true' : 'false',
+                'aria-expanded': isActive ? 'true' : 'false',
+                'data-filter-group': groupId
+            });
+
+            if (iconHtml) {
+                $tab.append($('<span></span>', {
+                    class: 'dapfforwc-mobile-filter-tab-icon',
+                    'aria-hidden': 'true'
+                }).html(iconHtml));
+            }
+
+            $tab.append($('<span></span>', {
+                class: 'dapfforwc-mobile-filter-tab-text',
+                text: title
+            }));
+            $tabs.append($tab);
+        });
+    }
+    function toggleMobileFilterGroup($group) {
+        const shouldOpen = !$group.hasClass('is-mobile-open');
+
+        $('#product-filter .filter-group').not($group).removeClass('is-mobile-open')
+            .find('> .dapfforwc-filter-title .dapfforwc-filter-toggle').attr('aria-expanded', 'false');
+        $group.removeClass('is-collapsed').toggleClass('is-mobile-open', shouldOpen);
+        $group.find('> .dapfforwc-filter-title .dapfforwc-filter-toggle').attr('aria-expanded', shouldOpen ? 'true' : 'false');
+        $('#product-filter').data('mobileOpenGroup', shouldOpen ? ($group.attr('id') || '') : '');
+        ensureMobileFilterTabs();
+    }
+    function closeMobileFilterGroups() {
+        $('#product-filter .filter-group').removeClass('is-mobile-open')
+            .find('> .dapfforwc-filter-title .dapfforwc-filter-toggle').attr('aria-expanded', 'false');
+        $('#product-filter').data('mobileOpenGroup', '');
+        ensureMobileFilterTabs();
+    }
+    function syncMobileFilterGroupState() {
+        const $groups = $('#product-filter .filter-group');
+
+        if (isMobile()) {
+            $groups.filter('.is-mobile-open')
+                .find('> .dapfforwc-filter-title .dapfforwc-filter-toggle').attr('aria-expanded', 'true');
+            $groups.not('.is-mobile-open')
+                .find('> .dapfforwc-filter-title .dapfforwc-filter-toggle').attr('aria-expanded', 'false');
+            return;
+        }
+
+        $groups.removeClass('is-mobile-open')
+            .find('> .dapfforwc-filter-title .dapfforwc-filter-toggle').attr('aria-expanded', 'true');
+    }
     function textChange() {
         return;
     }
     textChange();
+    syncMobileFilterGroupState();
      $(document).ajaxComplete(function() {
         textChange();
+        ensureMobileFilterTabs();
+        syncMobileFilterGroupState();
         noproductfound();
     });
+            $(document).on('click', '.dapfforwc-mobile-filter-tab', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const groupId = $(this).data('filter-group');
+                const $group = groupId ? $('#product-filter #' + escapeSelectorValue(groupId)) : $();
+
+                if ($group.length) {
+                    toggleMobileFilterGroup($group);
+                }
+            });
+            $(document).on('click', '.dapfforwc-mobile-filter-icon', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const $openGroup = getMobileFilterGroups().filter('.is-mobile-open').first();
+                if ($openGroup.length) {
+                    closeMobileFilterGroups();
+                    return;
+                }
+
+                const $firstGroup = getMobileFilterGroups().first();
+                if ($firstGroup.length) {
+                    toggleMobileFilterGroup($firstGroup);
+                }
+            });
             // Use event delegation for dynamically added elements
             $('#product-filter').on('click', '.title', function(event) {
                 if (isMobile()) {
-                event.stopPropagation();
-                $('#product-filter .items').hide();
-                $(this).next('.items').slideToggle(); // Toggle items with a sliding effect
+                    event.preventDefault();
+                    event.stopPropagation();
+                    toggleMobileFilterGroup($(this).closest('.filter-group'));
                 }
             });
-            $(document).on('click', function() {
+            $(document).on('click', function(event) {
                 if (isMobile()) {
-                    $('.items').hide();
+                    if ($(event.target).closest('#product-filter, .dapfforwc-filter-toolbar').length) {
+                        return;
+                    }
+
+                    closeMobileFilterGroups();
                 }
             });
 

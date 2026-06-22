@@ -88,6 +88,10 @@ function dapfforwc_render_taxonomy_settings_modal() {
                             <span><?php esc_html_e('View all button text', 'ajax-product-filter-for-woocommerce'); ?></span>
                             <input type="text" name="wcapf_options[taxonomy_settings][<?php echo esc_attr($taxonomy_key); ?>][view_all_text]" value="<?php echo esc_attr($ui_settings['view_all_text']); ?>">
                         </label>
+                        <label>
+                            <span><?php esc_html_e('Mobile title', 'ajax-product-filter-for-woocommerce'); ?></span>
+                            <input type="text" name="wcapf_options[taxonomy_settings][<?php echo esc_attr($taxonomy_key); ?>][mobile_title]" value="<?php echo esc_attr($ui_settings['mobile_title']); ?>" placeholder="<?php echo esc_attr(dapfforwc_get_default_mobile_title($taxonomy_key)); ?>">
+                        </label>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -98,7 +102,7 @@ function dapfforwc_render_taxonomy_settings_modal() {
 
 function dapfforwc_render_taxonomy_settings_button() {
     ?>
-    <button type="button" class="button dapfforwc-taxonomy-settings-trigger" aria-haspopup="dialog" aria-controls="dapfforwc-taxonomy-settings-modal" aria-label="<?php esc_attr_e('Manage taxonomy icons and view all text', 'ajax-product-filter-for-woocommerce'); ?>">
+    <button type="button" class="button dapfforwc-taxonomy-settings-trigger" aria-haspopup="dialog" aria-controls="dapfforwc-taxonomy-settings-modal" aria-label="<?php esc_attr_e('Manage taxonomy icons, mobile titles, and view all text', 'ajax-product-filter-for-woocommerce'); ?>">
         <span class="dashicons dashicons-admin-generic" aria-hidden="true"></span>
     </button>
     <?php
@@ -215,10 +219,12 @@ function dapfforwc_sanitize_taxonomy_settings($settings) {
 
         $svg_icon = isset($setting['svg_icon']) && is_scalar($setting['svg_icon']) ? (string) wp_unslash($setting['svg_icon']) : '';
         $view_all_text = isset($setting['view_all_text']) && is_scalar($setting['view_all_text']) ? (string) wp_unslash($setting['view_all_text']) : '';
+        $mobile_title = isset($setting['mobile_title']) && is_scalar($setting['mobile_title']) ? (string) wp_unslash($setting['mobile_title']) : '';
 
         $sanitized_settings[$taxonomy_key] = [
             'svg_icon' => wp_kses($svg_icon, dapfforwc_get_allowed_svg_tags()),
             'view_all_text' => sanitize_text_field($view_all_text),
+            'mobile_title' => sanitize_text_field($mobile_title),
         ];
     }
 
