@@ -110,18 +110,25 @@ class dapfforwc_Filter_Functions
         // Order products based on $orderby
         if (!empty($orderby)) {
             if ($orderby === 'menu_order date') {
-            usort($products_ids, function ($a, $b) use ($product_details_json) {
-                $menu_order_a = $product_details_json[$a]['menu_order'] ?? 0;
-                $menu_order_b = $product_details_json[$b]['menu_order'] ?? 0;
+                usort($products_ids, function ($a, $b) use ($product_details_json) {
+                    $product_a = $product_details_json[$a] ?? [];
+                    $product_b = $product_details_json[$b] ?? [];
+                    $menu_order_a = (int) ($product_a['menu_order'] ?? 0);
+                    $menu_order_b = (int) ($product_b['menu_order'] ?? 0);
 
-                if ($menu_order_a === $menu_order_b) {
-                $date_a = $product_details_json[$a]['post_modified'] ?? '';
-                $date_b = $product_details_json[$b]['post_modified'] ?? '';
-                return strcmp($date_a, $date_b);
-                }
+                    if ($menu_order_a === $menu_order_b) {
+                        $date_a = dapfforwc_get_product_sort_date_timestamp($product_a);
+                        $date_b = dapfforwc_get_product_sort_date_timestamp($product_b);
 
-                return $menu_order_a <=> $menu_order_b;
-            });
+                        if ($date_a === $date_b) {
+                            return absint($a) <=> absint($b);
+                        }
+
+                        return $date_a <=> $date_b;
+                    }
+
+                    return $menu_order_a <=> $menu_order_b;
+                });
             } else {
             $orderby = $orderby === 'date' ? 'post_modified' : $orderby;
             usort($products_ids, function ($a, $b) use ($product_details_json, $orderby) {
@@ -200,6 +207,90 @@ class dapfforwc_Filter_Functions
             return array_map('sanitize_text_field', explode(',', $selected_values));
         }
         return [];
+    }
+
+    private function get_current_url()
+    {
+        if (!empty($_POST['current-url'])) {
+            $posted_url = esc_url_raw(wp_unslash($_POST['current-url']));
+
+            if (!empty($posted_url)) {
+                return $posted_url;
+            }
+        }
+
+        $referer = wp_get_referer();
+        if (!empty($referer)) {
+            return $referer;
+        }
+
+        return home_url('/');
+    }
+
+    private function get_pagination_base_url()
+    {
+        $current_url = $this->get_current_url();
+        $current_url = preg_replace('#/page/\d+/?#', '/', $current_url);
+        $current_url = remove_query_arg('paged', $current_url);
+        $filter_word = $this->get_filter_permalink_word();
+        $filter_marker = '/' . $filter_word . '/';
+        $filter_position = strpos($current_url, $filter_marker);
+
+        if (false !== $filter_position) {
+            return substr_replace($current_url, '/%_%' . $filter_word . '/', $filter_position, strlen($filter_marker));
+        }
+
+        $query_filters = $this->get_query_filters_from_url($current_url);
+        if (!empty($query_filters)) {
+            $current_url = remove_query_arg('filters', $current_url);
+            $query_position = strpos($current_url, '?');
+            $url_before_query = false !== $query_position ? substr($current_url, 0, $query_position) : $current_url;
+            $query_string = false !== $query_position ? substr($current_url, $query_position) : '';
+
+            return trailingslashit($url_before_query) . '%_%' . $filter_word . '/' . implode('/', array_map('rawurlencode', $query_filters)) . '/' . $query_string;
+        }
+
+        $query_position = strpos($current_url, '?');
+        if (false !== $query_position) {
+            $url_before_query = substr($current_url, 0, $query_position);
+            $query_string = substr($current_url, $query_position);
+
+            return trailingslashit($url_before_query) . '%_%' . $query_string;
+        }
+
+        return trailingslashit($current_url) . '%_%';
+    }
+
+    private function get_filter_permalink_word()
+    {
+        global $wcapf_options;
+
+        $filter_word = isset($wcapf_options['filters_word_in_permalinks']) ? trim((string) $wcapf_options['filters_word_in_permalinks'], '/') : 'filters';
+
+        return '' !== $filter_word ? $filter_word : 'filters';
+    }
+
+    private function get_query_filters_from_url($url)
+    {
+        $query_string = wp_parse_url($url, PHP_URL_QUERY);
+        if (empty($query_string)) {
+            return [];
+        }
+
+        parse_str($query_string, $query_args);
+        if (empty($query_args['filters'])) {
+            return [];
+        }
+
+        $raw_filters = is_array($query_args['filters']) ? $query_args['filters'] : preg_split('#[,/]+#', (string) $query_args['filters']);
+        $filters = array_map(
+            function ($filter) {
+                return trim(sanitize_text_field(rawurldecode((string) $filter)), '/');
+            },
+            $raw_filters
+        );
+
+        return array_values(array_filter($filters));
     }
 
     private function display_product($product, $currentpage_slug, $permalinks)
@@ -330,10 +421,9 @@ class dapfforwc_Filter_Functions
 
     private function pagination($paged, $total_pages)
     {
-        $big = 999999999;
         $paginationLinks = paginate_links(array(
-            'base' => str_replace($big, '%#%', esc_url(get_pagenum_link($big))),
-            'format' => '?paged=%#%',
+            'base' => esc_url_raw($this->get_pagination_base_url()),
+            'format' => 'page/%#%/',
             'current' => max(1, $paged),
             'total' => $total_pages,
             'prev_text' => __('« Prev', 'ajax-product-filter-for-woocommerce'),

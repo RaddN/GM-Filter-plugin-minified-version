@@ -216,6 +216,47 @@ function dapfforwc_normalize_filter_values($values)
     return array_values(array_unique($normalized));
 }
 
+function dapfforwc_get_conference_date_timestamp($short_description)
+{
+    $short_description = (string) $short_description;
+
+    if ('' === trim($short_description)) {
+        return 0;
+    }
+
+    if (preg_match('/<div\b[^>]*class=["\'][^"\']*\bshort_desc\b[^"\']*["\'][^>]*>(.*?)<\/div>/is', $short_description, $matches)) {
+        $short_description = $matches[1];
+    }
+
+    $short_description = wp_strip_all_tags($short_description);
+    $short_description = html_entity_decode($short_description, ENT_QUOTES, get_bloginfo('charset'));
+    $date_parts = array_map('trim', explode('|', $short_description));
+    $date_value = $date_parts[0] ?? '';
+    $timestamp = '' !== $date_value ? strtotime($date_value) : false;
+
+    return false === $timestamp ? 0 : (int) $timestamp;
+}
+
+function dapfforwc_get_product_sort_date_timestamp($product)
+{
+    if (!is_array($product)) {
+        return 0;
+    }
+
+    $conference_timestamp = isset($product['conference_date_timestamp'])
+        ? absint($product['conference_date_timestamp'])
+        : dapfforwc_get_conference_date_timestamp($product['product_excerpt'] ?? '');
+
+    if ($conference_timestamp > 0) {
+        return $conference_timestamp;
+    }
+
+    $post_date = $product['post_date'] ?? ($product['post_modified'] ?? '');
+    $post_timestamp = '' !== $post_date ? strtotime((string) $post_date) : false;
+
+    return false === $post_timestamp ? 0 : (int) $post_timestamp;
+}
+
 function dapfforwc_get_request_filter_values($request, $filter_word = 'filters')
 {
     $filter_word = trim(sanitize_title((string) $filter_word), '/');
@@ -764,6 +805,7 @@ function dapfforwc_get_woocommerce_product_details()
         foreach ($results as $row) {
             $product_id = $row['ID'];
             $meta = $product_meta[$product_id] ?? [];
+            $product_excerpt = $row['post_excerpt'];
 
             // Determine product type and pricing
             $product_type = $meta['_product_type'] ?? 'simple';
@@ -788,9 +830,10 @@ function dapfforwc_get_woocommerce_product_details()
                 'post_modified' => $row['post_date'],
                 'post_date' => $row['post_date'],
                 'menu_order' => intval($row['menu_order']),
+                'conference_date_timestamp' => dapfforwc_get_conference_date_timestamp($product_excerpt),
                 'on_sale' => $sale_active,
                 'product_image' => $thumbnail_url,
-                'product_excerpt' => $row['post_excerpt'],
+                'product_excerpt' => $product_excerpt,
                 'product_sku' => $meta['_sku'] ?? '',
                 'product_stock' => $meta['_stock_status'] ?? 'instock',
                 'product_category' => $product_categories[$product_id] ?? [],
@@ -887,6 +930,7 @@ function dapfforwc_filter_renderable_product_ids($product_ids, &$product_details
                 'product_stock' => $product->get_stock_quantity(),
                 'on_sale' => $product->is_on_sale(),
                 'menu_order' => $product->get_menu_order(),
+                'conference_date_timestamp' => dapfforwc_get_conference_date_timestamp($product->get_short_description()),
                 'post_modified' => $modified ? $modified->date('Y-m-d H:i:s') : '',
             ];
         }

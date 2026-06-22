@@ -125,7 +125,8 @@ jQuery(document).ready(function($) {
 
         // Get the selected value
         orderby = $(this).val();
-        fetchFilteredProducts();
+        updatePaginationUrl(1);
+        fetchFilteredProducts(1, { scroll: true });
 
     });
 
@@ -149,33 +150,34 @@ jQuery(document).ready(function($) {
     const urlParams = new URLSearchParams(window.location.search);
     const gmfilter = urlParams.get('filters');
     const pathFilter = getPathFilters();
+    const initialPage = getCurrentPageFromUrl();
     
     if (typeof dapfforwc_data !== 'undefined' && dapfforwc_data.dapfforwc_slug) {
         
         const slugArray = dapfforwc_data.dapfforwc_slug.split('/').filter(value => value !== '');
         if (slugArray.length > 0) {
             const filtersString = slugArray.join(',');
-            applyFiltersFromUrl(filtersString);
-            updateUrlFilters();
+            applyFiltersFromUrl(filtersString, initialPage);
+            updateUrlFilters({ page: initialPage });
         }
     }else if(gmfilter){
         const slugtoArray = gmfilter.split('/').filter(value => value !== '');
         if (slugtoArray.length > 0) {
             const filtersString = slugtoArray.join(',');
-            applyFiltersFromUrl(filtersString);
-            updateUrlFilters();
+            applyFiltersFromUrl(filtersString, initialPage);
+            updateUrlFilters({ page: initialPage });
         }
     }
     else if(pathFilter){
         const slugtoArray = pathFilter.split('/').filter(value => value !== '');
         if (slugtoArray.length > 0) {
             const filtersString = slugtoArray.join(',');
-            applyFiltersFromUrl(filtersString);
-            updateUrlFilters();
+            applyFiltersFromUrl(filtersString, initialPage);
+            updateUrlFilters({ page: initialPage });
         }
     }
     else if (anyFilterSelected()) {
-        fetchFilteredProducts();
+        fetchFilteredProducts(initialPage, { scroll: initialPage > 1 });
     }
     
     function handleFilterChange(e) {
@@ -207,7 +209,7 @@ jQuery(document).ready(function($) {
 
         $('#roverlay').show();
         $('#loader').show();
-        fetchFilteredProducts();
+        fetchFilteredProducts(1, { scroll: true });
     }
     function store_selected_values() {
     let selectedValues = [];
@@ -258,8 +260,74 @@ function anyFilterSelected() {
     let pagination_selector = advancesettings ? advancesettings["pagination_selector"] ?? 'ul.page-numbers' : 'ul.page-numbers';
     let productSelector_shortcode = $('#product-filter').data('product_selector');
     let paginationSelector_shortcode = $('#product-filter').data('pagination_selector');
+
+    function getProductTarget() {
+        return $(productSelector_shortcode ?? product_selector).first();
+    }
+
+    function scrollToProductResults() {
+        const $target = getProductTarget();
+
+        if (!$target.length) {
+            return;
+        }
+
+        const offsetTop = Math.max(0, $target.offset().top - 80);
+        window.scrollTo({
+            top: offsetTop,
+            behavior: 'smooth'
+        });
+    }
+
+    function parsePageNumber(value) {
+        const normalized = String(value || '').replace(/[,\s]/g, '');
+        const match = normalized.match(/\d+/);
+
+        return match ? Math.max(1, parseInt(match[0], 10)) : 1;
+    }
+
+    function extractPageFromUrl(rawUrl) {
+        if (!rawUrl) {
+            return 1;
+        }
+
+        try {
+            const url = new URL(rawUrl, window.location.origin);
+            const queryPage = url.searchParams.get('paged');
+
+            if (queryPage) {
+                return parsePageNumber(queryPage);
+            }
+
+            const pathMatch = url.pathname.match(/\/page\/(\d+)(?:\/|$)/);
+
+            if (pathMatch) {
+                return parsePageNumber(pathMatch[1]);
+            }
+
+            return parsePageNumber(url.searchParams.get('product-page') || '1');
+        } catch (error) {
+            return parsePageNumber(rawUrl);
+        }
+    }
+
+    function getCurrentPageFromUrl() {
+        return extractPageFromUrl(window.location.href);
+    }
+
+    function getFilterUse() {
+        return (wcapf_options && wcapf_options.filters_word_in_permalinks) ? wcapf_options.filters_word_in_permalinks.replace(/^\/|\/$/g, '') : 'filters';
+    }
+
+    function updatePaginationUrl(page) {
+        const pageNumber = parsePageNumber(page);
+        const filtersArray = store_selected_values().filter(shouldShowFilterInUrl);
+
+        history.replaceState(null, '', buildFilterUrl(filterBaseUrl, getFilterUse(), filtersArray, pageNumber));
+    }
     
-    function fetchFilteredProducts(page = 1) {
+    function fetchFilteredProducts(page = 1, options = {}) {
+        page = parsePageNumber(page);
         selectfromurl();
         selectedValesbyuser = store_selected_values();
         $.post(dapfforwc_ajax.ajax_url, gatherFormData() +  `&selectedvalues=${selectedValesbyuser}&orderby=${orderby}&paged=${page}&action=dapfforwc_filter_products`, function(response) {
@@ -275,6 +343,12 @@ function anyFilterSelected() {
                 $(paginationSelector_shortcode ?? pagination_selector).html(response.data.pagination);
                 syncCheckboxSelections();
                 selectedFilterShowProductTop();
+                if (options.updateUrl) {
+                    updatePaginationUrl(page);
+                }
+                if (options.scroll) {
+                    scrollToProductResults();
+                }
             } else {
                 console.error('Error:', response.message);
                 
@@ -285,10 +359,10 @@ function anyFilterSelected() {
         $(document).on('click', ` ${paginationSelector_shortcode ?? pagination_selector} a.page-numbers`, function(e) {
             e.preventDefault(); // Prevent the default anchor click behavior
             const url = $(this).attr('href'); // Get the URL from the link
-            const page = new URL(url).searchParams.get('paged'); // Extract the page number
+            const page = extractPageFromUrl(url); // Extract the page number
             $('#roverlay').show();
             $('#loader').show();
-            fetchFilteredProducts(page); // Fetch products for the selected page
+            fetchFilteredProducts(page, { updateUrl: true, scroll: true }); // Fetch products for the selected page
         });
     }
     
@@ -353,7 +427,7 @@ function anyFilterSelected() {
         if (minPrice) priceParams += `&min_price=${encodeURIComponent(minPrice)}`;
         if (maxPrice) priceParams += `&max_price=${encodeURIComponent(maxPrice)}`;
         
-        return formData + priceParams + `&current-page=${encodeURIComponent(currentPageSlug)}`;
+        return formData + priceParams + `&current-page=${encodeURIComponent(currentPageSlug)}&current-url=${encodeURIComponent(window.location.href)}`;
     }
 
     function handleAjaxError(xhr, status, error) {
@@ -470,7 +544,7 @@ function anyFilterSelected() {
         });
     }
 
-    function applyFiltersFromUrl(filtersString) {
+    function applyFiltersFromUrl(filtersString, page = 1) {
         if (!filtersString) {
             return; // Early return if the string is empty
         }
@@ -488,9 +562,9 @@ function anyFilterSelected() {
             }
         });
     
-        fetchFilteredProducts(); // Fetch products after applying filters
+        fetchFilteredProducts(page, { scroll: true }); // Fetch products after applying filters
     }
-    function updateUrlFilters() {
+    function updateUrlFilters(options = {}) {
         const selectedFilters = new Set();
         $('#product-filter input:checked').each(function() {
             selectedFilters.add($(this).val());
@@ -503,30 +577,45 @@ function anyFilterSelected() {
             });
         });
         let filtersArray = Array.from(selectedFilters).filter(shouldShowFilterInUrl);
-        const filterUse = (wcapf_options && wcapf_options.filters_word_in_permalinks) ? wcapf_options.filters_word_in_permalinks.replace(/^\/|\/$/g, '') : 'filters';
-        const newUrl = buildFilterUrl(filterBaseUrl, filterUse, filtersArray);
+        const newUrl = buildFilterUrl(filterBaseUrl, getFilterUse(), filtersArray, options.page || 1);
         history.replaceState(null, '', newUrl);
     }
-    function buildFilterUrl(baseUrl, filterUse, filtersArray) {
+    function buildFilterUrl(baseUrl, filterUse, filtersArray, page = 1) {
         let url;
         try {
             url = new URL(baseUrl, window.location.origin);
         } catch (error) {
             url = new URL(window.location.href);
         }
+        const nonPaginationParams = new URLSearchParams(url.search);
+        nonPaginationParams.delete('filters');
+        nonPaginationParams.delete('paged');
+        const useQueryFilters = Array.from(nonPaginationParams.keys()).length > 0;
+
         url.hash = '';
         url.searchParams.delete('filters');
+        url.searchParams.delete('paged');
+        page = parsePageNumber(page);
+
+        const filterPattern = filterUse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        url.pathname = url.pathname
+            .replace(/\/page\/\d+\/?/g, '/')
+            .replace(new RegExp(`/${filterPattern}/.*$`), '/')
+            .replace(/\/?$/, '/');
+
+        if (page > 1) {
+            url.pathname = `${url.pathname}page/${page}/`;
+        }
 
         if (filtersArray.length === 0) {
             return url.toString();
         }
 
-        if (url.search) {
+        if (useQueryFilters) {
             url.searchParams.set('filters', filtersArray.join('/'));
             return url.toString();
         }
 
-        url.pathname = url.pathname.replace(new RegExp(`/${filterUse}/.*$`), '/').replace(/\/?$/, '/');
         url.pathname = `${url.pathname}${filterUse}/${filtersArray.map(encodeURIComponent).join('/')}/`;
         return url.toString();
     }

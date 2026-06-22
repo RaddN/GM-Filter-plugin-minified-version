@@ -629,10 +629,15 @@ body
 body #product-filter .dapfforwc-filter-card > .items {
   display: block;
   width: 100%;
-  padding: 8px 18px 4px !important;
+  padding: 16px 18px 4px !important;
   background: #fff;
   box-shadow: none !important;
   position: static;
+}
+@media (min-width: 782px) {
+  body #product-filter .dapfforwc-filter-card > .items {
+    border-top: 1px solid rgba(15, 37, 71, 0.08);
+  }
 }
 body #product-filter .dapfforwc-filter-option {
   display: grid !important;
