@@ -51,6 +51,56 @@ jQuery(document).ready(function($) {
         $group.toggleClass('is-expanded', isExpanded);
         $button.find('span').text(isExpanded ? expandedText : collapsedText);
     });
+
+    $('#product-filter').on('click', '.dapfforwc-filter-search-toggle', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const $button = $(this);
+        const $group = $button.closest('.filter-group');
+        const $search = $group.find('> .dapfforwc-filter-search').first();
+        const $input = $search.find('.dapfforwc-filter-search-input').first();
+        const shouldOpen = $search.prop('hidden') || !$group.hasClass('is-search-open');
+
+        $group.toggleClass('is-search-open', shouldOpen);
+        $button.toggleClass('is-active', shouldOpen);
+        $button.attr('aria-expanded', shouldOpen ? 'true' : 'false');
+        $search.prop('hidden', !shouldOpen);
+
+        if (shouldOpen) {
+            window.setTimeout(function() {
+                $input.trigger('focus');
+            }, 0);
+            return;
+        }
+
+        $input.val('');
+        resetFilterSearch($group);
+    });
+
+    $('#product-filter').on('input', '.dapfforwc-filter-search-input', function() {
+        const $input = $(this);
+        const $group = $input.closest('.filter-group');
+        applyFilterSearch($group, $input.val());
+    });
+
+    $('#product-filter').on('keydown', '.dapfforwc-filter-search-input', function(event) {
+        if (event.key !== 'Escape') {
+            return;
+        }
+
+        event.preventDefault();
+        const $input = $(this);
+        const $group = $input.closest('.filter-group');
+        const $search = $group.find('> .dapfforwc-filter-search').first();
+        const $button = $group.find('> .dapfforwc-filter-title .dapfforwc-filter-search-toggle').first();
+
+        $input.val('');
+        resetFilterSearch($group);
+        $group.removeClass('is-search-open');
+        $button.removeClass('is-active').attr('aria-expanded', 'false').trigger('focus');
+        $search.prop('hidden', true);
+    });
     
     // Initialize filters and handle changes
     
@@ -194,6 +244,34 @@ jQuery(document).ready(function($) {
         });
 
         refreshFiltersAfterSelectionChange();
+    }
+
+    function applyFilterSearch($group, rawTerm) {
+        const searchTerm = $.trim(String(rawTerm || '')).toLowerCase();
+        const $options = $group.find('> .items > .dapfforwc-filter-option');
+
+        if (!searchTerm) {
+            resetFilterSearch($group);
+            return;
+        }
+
+        $group.addClass('is-searching');
+
+        $options.each(function() {
+            const $option = $(this);
+            const optionText = ($option.find('.dapfforwc-option-text').first().text() || $option.text()).toLowerCase();
+            const isMatch = optionText.indexOf(searchTerm) !== -1;
+
+            $option
+                .toggleClass('dapfforwc-search-match', isMatch)
+                .toggleClass('dapfforwc-search-hidden', !isMatch);
+        });
+    }
+
+    function resetFilterSearch($group) {
+        $group.removeClass('is-searching');
+        $group.find('> .items > .dapfforwc-filter-option')
+            .removeClass('dapfforwc-search-match dapfforwc-search-hidden');
     }
 
     function refreshFiltersAfterSelectionChange() {

@@ -202,7 +202,7 @@ function dapfforwc_get_filter_group_ui_settings($group_name)
     ];
 }
 
-function dapfforwc_render_filter_group_title($group_name, $items_id)
+function dapfforwc_render_filter_group_title($group_name, $items_id, $has_search = false)
 {
     $settings = dapfforwc_get_filter_group_ui_settings($group_name);
     $title = dapfforwc_get_filter_group_title($group_name);
@@ -211,15 +211,53 @@ function dapfforwc_render_filter_group_title($group_name, $items_id)
         __('Toggle %s filter', 'ajax-product-filter-for-woocommerce'),
         $title
     );
+    $search_label = sprintf(
+        /* translators: %s: filter group title. */
+        __('Search %s filter options', 'ajax-product-filter-for-woocommerce'),
+        $title
+    );
+    $search_id = $items_id . '-search';
 
     $output = '<div class="title dapfforwc-filter-title">';
     $output .= '<span class="dapfforwc-filter-heading">';
     $output .= '<span class="dapfforwc-filter-icon" aria-hidden="true">' . wp_kses($settings['svg_icon'], dapfforwc_get_allowed_svg_tags()) . '</span>';
     $output .= '<span class="dapfforwc-filter-title-text" data-mobile-title="' . esc_attr($settings['mobile_title']) . '">' . esc_html($title) . '</span>';
     $output .= '</span>';
+    $output .= '<span class="dapfforwc-filter-actions">';
+    if ($has_search) {
+        $output .= '<button type="button" class="dapfforwc-filter-search-toggle" aria-expanded="false" aria-controls="' . esc_attr($search_id) . '" aria-label="' . esc_attr($search_label) . '">';
+        $output .= '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>';
+        $output .= '</button>';
+    }
     $output .= '<button type="button" class="dapfforwc-filter-toggle" aria-expanded="true" aria-controls="' . esc_attr($items_id) . '" aria-label="' . esc_attr($toggle_label) . '">';
     $output .= '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m18 15-6-6-6 6"></path></svg>';
     $output .= '</button>';
+    $output .= '</span>';
+    $output .= '</div>';
+
+    return $output;
+}
+
+function dapfforwc_render_filter_group_search($group_name, $items_id)
+{
+    $title = dapfforwc_get_filter_group_title($group_name);
+    $search_label = sprintf(
+        /* translators: %s: filter group title. */
+        __('Search %s filter options', 'ajax-product-filter-for-woocommerce'),
+        $title
+    );
+    $placeholder = sprintf(
+        /* translators: %s: filter group title. */
+        __('Search %s', 'ajax-product-filter-for-woocommerce'),
+        strtolower($title)
+    );
+
+    $output = '<div class="dapfforwc-filter-search" hidden>';
+    $output .= '<label class="screen-reader-text" for="' . esc_attr($items_id . '-search') . '">' . esc_html($search_label) . '</label>';
+    $output .= '<span class="dapfforwc-filter-search-icon" aria-hidden="true">';
+    $output .= '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>';
+    $output .= '</span>';
+    $output .= '<input id="' . esc_attr($items_id . '-search') . '" type="search" class="dapfforwc-filter-search-input" placeholder="' . esc_attr($placeholder) . '" autocomplete="off" aria-controls="' . esc_attr($items_id) . '">';
     $output .= '</div>';
 
     return $output;
@@ -234,10 +272,6 @@ function dapfforwc_render_filter_group($group_name, $items, $selected_items, $sh
     $visible_items = 5;
     $has_hidden_options = false;
 
-    $output = '<div id="' . esc_attr($group_name) . '" class="filter-group dapfforwc-filter-card ' . esc_attr($group_name) . '" data-filter-group="' . esc_attr($group_name) . '" style="display: ' . (!empty($show_group) ? 'block' : 'none') . ';">';
-    $output .= dapfforwc_render_filter_group_title($group_name, $items_id);
-    $output .= '<div id="' . esc_attr($items_id) . '" class="items">';
-
     // Sort items
     usort($items, function ($a, $b) {
         return dapfforwc_customSort(
@@ -247,6 +281,7 @@ function dapfforwc_render_filter_group($group_name, $items, $selected_items, $sh
     });
 
     // Generate filter options
+    $items_output = '';
     if (is_array($items) || is_object($items)) {
     foreach ($items as $index => $item) {
         $name = is_object($item) ? esc_html($item->name) : esc_html($item['name']);
@@ -255,9 +290,16 @@ function dapfforwc_render_filter_group($group_name, $items, $selected_items, $sh
         $hide_option = $index >= $visible_items && empty($checked);
         $has_hidden_options = $has_hidden_options || $hide_option;
 
-        $output .= dapfforwc_render_filter_option($name, $slug, $checked, $attribute ? 'attribute[' . $group_name . ']' : $group_name, $hide_option);
+        $items_output .= dapfforwc_render_filter_option($name, $slug, $checked, $attribute ? 'attribute[' . $group_name . ']' : $group_name, $hide_option);
     }}
 
+    $output = '<div id="' . esc_attr($group_name) . '" class="filter-group dapfforwc-filter-card ' . esc_attr($group_name) . '" data-filter-group="' . esc_attr($group_name) . '" style="display: ' . (!empty($show_group) ? 'block' : 'none') . ';">';
+    $output .= dapfforwc_render_filter_group_title($group_name, $items_id, $has_hidden_options);
+    if ($has_hidden_options) {
+        $output .= dapfforwc_render_filter_group_search($group_name, $items_id);
+    }
+    $output .= '<div id="' . esc_attr($items_id) . '" class="items">';
+    $output .= $items_output;
     $output .= '</div>';
     if ($has_hidden_options) {
         $output .= '<button type="button" class="dapfforwc-view-all" data-collapsed-text="' . esc_attr($settings['view_all_text']) . '" data-expanded-text="' . esc_attr__('Show less', 'ajax-product-filter-for-woocommerce') . '">';
