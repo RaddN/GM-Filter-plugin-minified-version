@@ -159,11 +159,20 @@ class dapfforwc_Filter_Functions
         $end_index = min($start_index + $per_page, $count_total_showing_product);
 
         ob_start();
+        $current_month_label = '';
         for ($i = $start_index; $i < $end_index; $i++) {
             if (isset($products_ids[$i])) {
                 $product_id = $products_ids[$i];
                 if (isset($product_details_json[$product_id])) {
                     $product = $product_details_json[$product_id];
+                    if (function_exists('dapfforwc_get_conference_month_label_from_excerpt') && function_exists('dapfforwc_render_conference_month_row')) {
+                        $month_label = dapfforwc_get_conference_month_label_from_excerpt($product['product_excerpt'] ?? '');
+
+                        if ('' !== $month_label && $month_label !== $current_month_label) {
+                            echo dapfforwc_render_conference_month_row($month_label);
+                            $current_month_label = $month_label;
+                        }
+                    }
                     $this->display_product($product, $currentpage_slug, $permalinks);
                 }
             }
@@ -306,6 +315,18 @@ class dapfforwc_Filter_Functions
         $product_image = empty($product['product_image']) ? wc_placeholder_img_src('woocommerce_thumbnail') : $product['product_image'];
         $product_image = esc_url($product_image);
         $product_excerpt = $product['product_excerpt'];
+        $conference_data = function_exists('dapfforwc_extract_conference_short_desc_data')
+            ? dapfforwc_extract_conference_short_desc_data($product_excerpt)
+            : [
+                'date' => '',
+                'place' => '',
+                'type' => '',
+            ];
+        $product_date = $conference_data['date'] ?? '';
+        $product_place = $conference_data['place'] ?? '';
+        $product_type = $conference_data['type'] ?? '';
+        $product_topics = function_exists('dapfforwc_render_product_topic_badges') ? dapfforwc_render_product_topic_badges($product_id) : '';
+        $product_topics_text = function_exists('dapfforwc_get_product_topic_text') ? dapfforwc_get_product_topic_text($product_id) : '';
         $rating = isset($product['rating']) ? max(0, min(5, (float) $product['rating'])) : 0;
         $rating_width = esc_attr($rating * 20);
         $product_category = $product['product_category'];
@@ -336,6 +357,11 @@ class dapfforwc_Filter_Functions
             $custom_template = str_replace('{{product_stock}}', esc_html($product_stock), $custom_template);
             $custom_template = str_replace('{{add_to_cart_url}}', $add_to_cart_url, $custom_template);
             $custom_template = str_replace('{{product_id}}', esc_html($product_id), $custom_template);
+            $custom_template = str_replace('{{product_date}}', esc_html($product_date), $custom_template);
+            $custom_template = str_replace('{{product_place}}', esc_html($product_place), $custom_template);
+            $custom_template = str_replace('{{product_type}}', esc_html($product_type), $custom_template);
+            $custom_template = str_replace('{{product_topics}}', $product_topics, $custom_template);
+            $custom_template = str_replace('{{product_topics_text}}', esc_html($product_topics_text), $custom_template);
             $allowed_tags = array(
                 'a' => array(
                     'href' => array(),

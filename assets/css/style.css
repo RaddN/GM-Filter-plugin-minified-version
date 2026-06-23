@@ -1386,3 +1386,436 @@ body .dapfforwc-single-filter-nav.has-overflow .dapfforwc-single-filter-arrow {
     margin-bottom: 0 !important;
   }
 }
+
+body table.featured-conferences-table {
+  width: 100% !important;
+  margin: 0 0 18px !important;
+  border: 1px solid #dfe6ef !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #27364f !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  overflow: hidden !important;
+  box-shadow: 0 14px 30px rgba(15, 37, 71, 0.08) !important;
+}
+
+body table.featured-conferences-table thead {
+  background: transparent !important;
+}
+
+body table.featured-conferences-table thead th {
+  padding: 15px 20px !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.28) !important;
+  background: var(--dapfforwc-primary-color, #c9a84c) !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+body table.featured-conferences-table thead th:last-child {
+  border-right: 0 !important;
+}
+
+body table.featured-conferences-table .conference-date-heading::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 8px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transform: rotate(-45deg) translateY(2px);
+  opacity: 0.86;
+}
+
+body table.featured-conferences-table .conference-month-row th {
+  padding: 12px 20px !important;
+  border: 0 !important;
+  border-top: 1px solid #eadfbf !important;
+  border-bottom: 1px solid #eadfbf !important;
+  background: #fff8e7 !important;
+  color: #bf8b00 !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  text-align: left !important;
+}
+
+body table.featured-conferences-table td {
+  padding: 14px 20px !important;
+  border: 0 !important;
+  border-right: 1px solid #e4eaf2 !important;
+  border-bottom: 1px solid #e4eaf2 !important;
+  background: #fff !important;
+  color: #27364f !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+}
+
+body table.featured-conferences-table tr.conference-table-row:last-child td {
+  border-bottom: 0 !important;
+}
+
+body table.featured-conferences-table td:last-child {
+  border-right: 0 !important;
+}
+
+body table.featured-conferences-table .conference-date-cell {
+  width: 20% !important;
+  color: #35445c !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+body table.featured-conferences-table .conference-date-text,
+body table.featured-conferences-table .conference-location-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+}
+
+body table.featured-conferences-table .conference-date-text::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 1.8px solid var(--dapfforwc-primary-color, #c9a84c);
+  border-radius: 3px;
+  background:
+    linear-gradient(var(--dapfforwc-primary-color, #c9a84c), var(--dapfforwc-primary-color, #c9a84c)) 2px 4px / 10px 1.5px no-repeat,
+    #fff;
+  box-shadow:
+    inset 0 3px 0 rgba(201, 168, 76, 0.14),
+    3px 0 0 -1.8px var(--dapfforwc-primary-color, #c9a84c),
+    -3px 0 0 -1.8px var(--dapfforwc-primary-color, #c9a84c);
+}
+
+body table.featured-conferences-table .conference-title-cell {
+  width: 58% !important;
+}
+
+body table.featured-conferences-table .conference-title-link {
+  display: block !important;
+  color: #102653 !important;
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+  text-decoration: none !important;
+}
+
+body table.featured-conferences-table .conference-title-link:hover,
+body table.featured-conferences-table .conference-title-link:focus {
+  color: var(--dapfforwc-primary-color, #c9a84c) !important;
+  text-decoration: none !important;
+}
+
+body table.featured-conferences-table .conference-topic-badges {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-top: 9px !important;
+}
+
+body table.featured-conferences-table .conference-topic-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  max-width: 100% !important;
+  min-height: 24px !important;
+  padding: 5px 10px !important;
+  border: 1px solid #d8eef4 !important;
+  border-radius: 6px !important;
+  background: #eef9fb !important;
+  color: #167b90 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  overflow-wrap: anywhere !important;
+}
+
+body table.featured-conferences-table .conference-topic-badge::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+body table.featured-conferences-table .conference-topic-badge--business-management {
+  border-color: #d9e7ff !important;
+  background: #f0f5ff !important;
+  color: #5376c8 !important;
+}
+
+body table.featured-conferences-table .conference-topic-badge--advertising-and-marketing-communications,
+body table.featured-conferences-table .conference-topic-badge--digital-marketing-and-technology {
+  border-color: #f9dfbd !important;
+  background: #fff5e8 !important;
+  color: #bd6b12 !important;
+}
+
+body table.featured-conferences-table .conference-location-cell {
+  width: 22% !important;
+  text-align: center !important;
+}
+
+body table.featured-conferences-table .conference-location-pill {
+  justify-content: center !important;
+  min-width: 142px !important;
+  padding: 7px 11px !important;
+  border: 1px solid #dcecf6 !important;
+  border-radius: 6px !important;
+  background: #f1f8fc !important;
+  color: #245f84 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+}
+
+body table.featured-conferences-table .conference-location-pill::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+}
+
+body table.featured-conferences-table + nav.woocommerce-pagination,
+body nav.woocommerce-pagination.conference-table-pagination {
+  justify-content: flex-end !important;
+  margin-top: 12px !important;
+}
+
+body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers,
+body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers li,
+body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers li {
+  border: 0 !important;
+}
+
+body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers a,
+body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers span,
+body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers a,
+body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  padding: 0 12px !important;
+  border: 1px solid #e1e7ef !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  color: #394963 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 10px rgba(15, 37, 71, 0.06) !important;
+}
+
+body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers a:hover,
+body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers a:focus,
+body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers span.current,
+body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers a:hover,
+body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers a:focus,
+body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers span.current {
+  border-color: var(--dapfforwc-primary-color, #c9a84c) !important;
+  background: var(--dapfforwc-primary-color, #c9a84c) !important;
+  color: #fff !important;
+}
+
+@media (max-width: 781px) {
+  body table.featured-conferences-table {
+    display: block !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  body table.featured-conferences-table thead {
+    display: none !important;
+  }
+
+  body table.featured-conferences-table tbody {
+    display: block !important;
+  }
+
+  body table.featured-conferences-table .conference-month-row {
+    display: block !important;
+  }
+
+  body table.featured-conferences-table .conference-month-row th {
+    display: block !important;
+    width: 100% !important;
+    margin: 16px 0 10px !important;
+    padding: 9px 12px !important;
+    border: 1px solid #f1dfb0 !important;
+    border-radius: 6px !important;
+    background: #fff8e7 !important;
+    font-size: 14px !important;
+  }
+
+  body table.featured-conferences-table .conference-table-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 13px 8px !important;
+    margin: 0 0 12px !important;
+    padding: 15px 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    box-shadow: 0 12px 24px rgba(15, 37, 71, 0.09) !important;
+  }
+
+  body table.featured-conferences-table td {
+    display: block !important;
+    width: auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  body table.featured-conferences-table .conference-date-cell {
+    order: 1 !important;
+    flex: 1 1 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding-right: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  body table.featured-conferences-table .conference-date-text {
+    gap: 6px !important;
+    max-width: 100% !important;
+    font-size: 12px !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  body table.featured-conferences-table .conference-date-text::before {
+    width: 12px !important;
+    height: 12px !important;
+    border-width: 1.5px !important;
+    border-radius: 3px !important;
+    background:
+      linear-gradient(var(--dapfforwc-primary-color, #c9a84c), var(--dapfforwc-primary-color, #c9a84c)) 2px 4px / 8px 1.3px no-repeat,
+      #fff !important;
+    box-shadow:
+      inset 0 3px 0 rgba(201, 168, 76, 0.14),
+      3px 0 0 -1.8px var(--dapfforwc-primary-color, #c9a84c),
+      -3px 0 0 -1.8px var(--dapfforwc-primary-color, #c9a84c) !important;
+  }
+
+  body table.featured-conferences-table .conference-location-cell {
+    order: 2 !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    margin-left: auto !important;
+    text-align: right !important;
+  }
+
+  body table.featured-conferences-table .conference-location-pill {
+    min-width: 0 !important;
+    width: max-content !important;
+    max-width: none !important;
+    gap: 6px !important;
+    padding: 6px 8px !important;
+    font-size: 10.5px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body table.featured-conferences-table .conference-location-pill::before {
+    width: 8px !important;
+    height: 8px !important;
+    border-width: 1.8px !important;
+  }
+
+  body table.featured-conferences-table .conference-location-text {
+    white-space: nowrap !important;
+  }
+
+  body table.featured-conferences-table .conference-title-cell {
+    order: 3 !important;
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  body table.featured-conferences-table .conference-title-link {
+    font-size: 15px !important;
+    line-height: 1.36 !important;
+  }
+
+  body table.featured-conferences-table .conference-topic-badges {
+    margin-top: 10px !important;
+  }
+
+  body table.featured-conferences-table .conference-topic-badge {
+    width: max-content !important;
+    max-width: 100% !important;
+    min-height: 25px !important;
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+    overflow-wrap: normal !important;
+  }
+
+  body table.featured-conferences-table + nav.woocommerce-pagination,
+  body nav.woocommerce-pagination.conference-table-pagination {
+    justify-content: center !important;
+  }
+
+  body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers,
+  body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers {
+    gap: 8px !important;
+  }
+
+  body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers a,
+  body table.featured-conferences-table + nav.woocommerce-pagination ul.page-numbers span,
+  body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers a,
+  body nav.woocommerce-pagination.conference-table-pagination ul.page-numbers span {
+    min-width: 36px !important;
+    height: 36px !important;
+  }
+}
+
+@media (max-width: 330px) {
+  body table.featured-conferences-table .conference-date-cell {
+    flex: 0 0 100% !important;
+    margin-bottom: 8px !important;
+    padding-right: 0 !important;
+  }
+
+  body table.featured-conferences-table .conference-location-cell {
+    margin: 0 0 12px !important;
+    text-align: left !important;
+  }
+}

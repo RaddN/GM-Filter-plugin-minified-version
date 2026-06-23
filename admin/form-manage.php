@@ -135,7 +135,12 @@ function dapfforwc_custom_template_code_render() {
                 '{{product_sku}}' => 'Product SKU',
                 '{{product_stock}}' => 'Product Stock',
                 '{{add_to_cart_url}}' => 'Add to Cart URL',
-                '{{product_id}}' => 'Product ID'
+                '{{product_id}}' => 'Product ID',
+                '{{product_date}}' => 'Conference Date',
+                '{{product_place}}' => 'Conference Location',
+                '{{product_type}}' => 'Conference Type',
+                '{{product_topics}}' => 'Topic Badges',
+                '{{product_topics_text}}' => 'Topic Text'
             ];
             if (is_array($placeholders) || is_object($placeholders)) {
             foreach ($placeholders as $placeholder => $label) {

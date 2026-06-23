@@ -941,6 +941,447 @@ function dapfforwc_filter_renderable_product_ids($product_ids, &$product_details
     }));
 }
 
+function dapfforwc_extract_conference_short_desc_data($short_description)
+{
+    $short_description = (string) $short_description;
+    $data = [
+        'date' => 'N/A',
+        'place' => 'N/A',
+        'type' => '',
+        'date_timestamp' => 0,
+    ];
+
+    if ('' === trim($short_description)) {
+        return $data;
+    }
+
+    if (preg_match('/<div\b[^>]*class=["\'][^"\']*\bshort_desc\b[^"\']*["\'][^>]*>(.*?)<\/div>/is', $short_description, $matches)) {
+        $short_description = $matches[1];
+    }
+
+    $short_description = wp_strip_all_tags($short_description);
+    $short_description = html_entity_decode($short_description, ENT_QUOTES, get_bloginfo('charset'));
+    $parts = array_map('trim', explode('|', $short_description));
+
+    if (!empty($parts[0])) {
+        $data['date'] = $parts[0];
+        $timestamp = strtotime($parts[0]);
+
+        if (false !== $timestamp) {
+            $data['date_timestamp'] = (int) $timestamp;
+        }
+    }
+
+    if (!empty($parts[1])) {
+        $data['place'] = $parts[1];
+    }
+
+    if (!empty($parts[2])) {
+        $data['type'] = $parts[2];
+    }
+
+    return $data;
+}
+
+function dapfforwc_get_conference_month_label_from_date($date)
+{
+    $timestamp = strtotime((string) $date);
+
+    if (false === $timestamp) {
+        return '';
+    }
+
+    return date_i18n('F Y', $timestamp);
+}
+
+function dapfforwc_get_conference_month_label_from_excerpt($short_description)
+{
+    $conference_data = dapfforwc_extract_conference_short_desc_data($short_description);
+
+    return dapfforwc_get_conference_month_label_from_date($conference_data['date']);
+}
+
+function dapfforwc_render_conference_month_row($month_label)
+{
+    $month_label = trim((string) $month_label);
+
+    if ('' === $month_label) {
+        return '';
+    }
+
+    return '<tr class="conference-month-row"><th colspan="3">' . esc_html($month_label) . '</th></tr>';
+}
+
+function dapfforwc_get_product_topic_terms($product_id)
+{
+    $product_id = absint($product_id);
+
+    if (!$product_id || !taxonomy_exists('pa_popular-topics')) {
+        return [];
+    }
+
+    $terms = get_the_terms($product_id, 'pa_popular-topics');
+
+    if (empty($terms) || is_wp_error($terms)) {
+        return [];
+    }
+
+    return array_values(array_filter($terms, function ($term) {
+        return isset($term->name, $term->slug);
+    }));
+}
+
+function dapfforwc_get_product_topic_text($product_id)
+{
+    $terms = dapfforwc_get_product_topic_terms($product_id);
+
+    if (empty($terms)) {
+        return '';
+    }
+
+    return implode(', ', wp_list_pluck($terms, 'name'));
+}
+
+function dapfforwc_render_product_topic_badges($product_id)
+{
+    $terms = dapfforwc_get_product_topic_terms($product_id);
+
+    if (empty($terms)) {
+        return '';
+    }
+
+    $output = '<span class="conference-topic-badges">';
+
+    foreach ($terms as $term) {
+        $slug = sanitize_html_class($term->slug);
+        $output .= '<span class="conference-topic-badge conference-topic-badge--' . esc_attr($slug) . '">' . esc_html($term->name) . '</span>';
+    }
+
+    $output .= '</span>';
+
+    return $output;
+}
+
+function dapfforwc_get_conference_table_template()
+{
+    return '<tr class="conference-table-row">
+  <td class="conference-date-cell"><span class="conference-date-text">{{product_date}}</span></td>
+  <td class="conference-title-cell"><a class="conference-title-link" href="{{product_link}}">{{product_title}}</a>{{product_topics}}</td>
+  <td class="conference-location-cell"><span class="conference-location-pill"><span class="conference-location-text">{{product_place}}</span></span></td>
+</tr>';
+}
+
+function dapfforwc_get_conference_table_allowed_html()
+{
+    return [
+        'a' => [
+            'href' => [],
+            'title' => [],
+            'class' => [],
+            'target' => [],
+            'rel' => [],
+        ],
+        'span' => [
+            'class' => [],
+        ],
+        'tr' => [
+            'class' => [],
+        ],
+        'td' => [
+            'class' => [],
+            'colspan' => [],
+            'rowspan' => [],
+        ],
+        'th' => [
+            'class' => [],
+            'colspan' => [],
+            'rowspan' => [],
+            'scope' => [],
+        ],
+        'thead' => [],
+        'tbody' => [],
+        'table' => [
+            'class' => [],
+            'style' => [],
+            'border' => [],
+            'cellpadding' => [],
+            'cellspacing' => [],
+        ],
+        'nav' => [
+            'class' => [],
+            'aria-label' => [],
+        ],
+        'ul' => [
+            'class' => [],
+        ],
+        'li' => [
+            'class' => [],
+        ],
+    ];
+}
+
+function dapfforwc_render_conference_table_row($args)
+{
+    $args = wp_parse_args(
+        (array) $args,
+        [
+            'product_id' => 0,
+            'product_link' => '',
+            'product_title' => '',
+            'date' => 'N/A',
+            'place' => 'N/A',
+            'topic_badges' => '',
+        ]
+    );
+
+    $topic_badges = (string) $args['topic_badges'];
+
+    return '<tr class="conference-table-row">' .
+        '<td class="conference-date-cell"><span class="conference-date-text">' . esc_html($args['date']) . '</span></td>' .
+        '<td class="conference-title-cell"><a class="conference-title-link" href="' . esc_url($args['product_link']) . '">' . esc_html($args['product_title']) . '</a>' . wp_kses($topic_badges, dapfforwc_get_conference_table_allowed_html()) . '</td>' .
+        '<td class="conference-location-cell"><span class="conference-location-pill"><span class="conference-location-text">' . esc_html($args['place']) . '</span></span></td>' .
+        '</tr>';
+}
+
+function dapfforwc_register_conference_table_shortcode()
+{
+    add_shortcode('latest_products_table_with_custom_sort', 'dapfforwc_render_latest_products_table_shortcode');
+}
+add_action('init', 'dapfforwc_register_conference_table_shortcode', 99);
+
+function dapfforwc_render_latest_products_table_shortcode($atts)
+{
+    $atts = shortcode_atts(
+        [
+            'category' => '',
+            'cat_operator' => 'IN',
+            'attribute' => '',
+            'terms' => '',
+            'terms_operator' => '',
+            'tags' => '',
+            'tag' => '',
+            'tag_operator' => '',
+            'per_page' => 30,
+            'pagination' => 'true',
+            'orderby' => 'date',
+            'order' => 'ASC',
+        ],
+        $atts,
+        'latest_products_table_with_custom_sort'
+    );
+
+    $category_operator = strtoupper(sanitize_text_field($atts['cat_operator']));
+    $terms_operator = '' !== $atts['terms_operator'] ? strtoupper(sanitize_text_field($atts['terms_operator'])) : $category_operator;
+    $tag_operator = '' !== $atts['tag_operator'] ? strtoupper(sanitize_text_field($atts['tag_operator'])) : $category_operator;
+    $allowed_operators = ['IN', 'NOT IN', 'AND'];
+
+    if (!in_array($category_operator, $allowed_operators, true)) {
+        $category_operator = 'IN';
+    }
+
+    if (!in_array($terms_operator, $allowed_operators, true)) {
+        $terms_operator = 'IN';
+    }
+
+    if (!in_array($tag_operator, $allowed_operators, true)) {
+        $tag_operator = 'IN';
+    }
+
+    $per_page = absint($atts['per_page']);
+    $per_page = $per_page > 0 ? $per_page : 30;
+    $pagination = 'true' === strtolower(sanitize_text_field($atts['pagination']));
+    $orderby = sanitize_text_field($atts['orderby']);
+    $order = strtoupper(sanitize_text_field($atts['order']));
+    $allowed_orderby = ['date', 'title', 'menu_order', 'menu_order date', 'modified', 'rand', 'ID'];
+
+    if (!in_array($orderby, $allowed_orderby, true)) {
+        $orderby = 'date';
+    }
+
+    if (!in_array($order, ['ASC', 'DESC'], true)) {
+        $order = 'ASC';
+    }
+
+    $paged = get_query_var('paged') ? absint(get_query_var('paged')) : 1;
+    if (isset($_GET['paged'])) {
+        $paged = absint(wp_unslash($_GET['paged']));
+    }
+    $paged = max(1, $paged);
+
+    $tax_query = [
+        'relation' => 'AND',
+    ];
+
+    if ('' !== trim((string) $atts['category'])) {
+        $tax_query[] = [
+            'taxonomy' => 'product_cat',
+            'field' => 'slug',
+            'terms' => array_map('sanitize_title', array_map('trim', explode(',', $atts['category']))),
+            'operator' => $category_operator,
+        ];
+    }
+
+    $tag_terms = '' !== trim((string) $atts['tags']) ? $atts['tags'] : $atts['tag'];
+    if ('' !== trim((string) $tag_terms)) {
+        $tax_query[] = [
+            'taxonomy' => 'product_tag',
+            'field' => 'slug',
+            'terms' => array_map('sanitize_title', array_map('trim', explode(',', $tag_terms))),
+            'operator' => $tag_operator,
+        ];
+    }
+
+    if ('' !== trim((string) $atts['attribute']) && '' !== trim((string) $atts['terms'])) {
+        $attributes = array_map('trim', explode(',', $atts['attribute']));
+        $terms = array_map('trim', explode(',', $atts['terms']));
+
+        if (count($attributes) !== count($terms)) {
+            return '<p>' . esc_html__('Error: The number of attributes must match the number of terms.', 'ajax-product-filter-for-woocommerce') . '</p>';
+        }
+
+        foreach ($attributes as $index => $attribute) {
+            $attribute = sanitize_title($attribute);
+
+            if ('' === $attribute) {
+                continue;
+            }
+
+            $tax_query[] = [
+                'taxonomy' => 'pa_' . $attribute,
+                'field' => 'slug',
+                'terms' => array_map('sanitize_title', array_map('trim', explode('|', $terms[$index]))),
+                'operator' => $terms_operator,
+            ];
+        }
+    }
+
+    $manual_conference_date_sort = 'menu_order date' === $orderby;
+    $query_orderby = $manual_conference_date_sort ? ['menu_order' => 'ASC', 'ID' => 'ASC'] : $orderby;
+
+    $query_args = [
+        'post_type' => 'product',
+        'post_status' => 'publish',
+        'posts_per_page' => $manual_conference_date_sort ? -1 : $per_page,
+        'orderby' => $query_orderby,
+        'order' => $manual_conference_date_sort ? 'ASC' : $order,
+        'paged' => $manual_conference_date_sort ? 1 : $paged,
+        'ignore_sticky_posts' => true,
+    ];
+
+    if (count($tax_query) > 1) {
+        $query_args['tax_query'] = $tax_query;
+    }
+
+    $query = new WP_Query($query_args);
+
+    if ($manual_conference_date_sort && !empty($query->posts)) {
+        usort($query->posts, function ($post_a, $post_b) {
+            $menu_order_a = isset($post_a->menu_order) ? (int) $post_a->menu_order : 0;
+            $menu_order_b = isset($post_b->menu_order) ? (int) $post_b->menu_order : 0;
+
+            if ($menu_order_a !== $menu_order_b) {
+                return $menu_order_a <=> $menu_order_b;
+            }
+
+            $date_a = dapfforwc_extract_conference_short_desc_data(get_post_field('post_excerpt', $post_a->ID));
+            $date_b = dapfforwc_extract_conference_short_desc_data(get_post_field('post_excerpt', $post_b->ID));
+            $timestamp_a = !empty($date_a['date_timestamp']) ? (int) $date_a['date_timestamp'] : strtotime($post_a->post_date);
+            $timestamp_b = !empty($date_b['date_timestamp']) ? (int) $date_b['date_timestamp'] : strtotime($post_b->post_date);
+
+            if ($timestamp_a === $timestamp_b) {
+                return (int) $post_a->ID <=> (int) $post_b->ID;
+            }
+
+            return $timestamp_a <=> $timestamp_b;
+        });
+
+        if ('DESC' === $order) {
+            $query->posts = array_reverse($query->posts);
+        }
+
+        $query->found_posts = count($query->posts);
+        $query->max_num_pages = (int) ceil($query->found_posts / $per_page);
+        $query->posts = array_slice($query->posts, ($paged - 1) * $per_page, $per_page);
+        $query->post_count = count($query->posts);
+        $query->rewind_posts();
+    }
+
+    $output = '<table class="featured-conferences-table">';
+    $output .= '<thead><tr>';
+    $output .= '<th class="conference-date-heading" scope="col">' . esc_html__('Date', 'ajax-product-filter-for-woocommerce') . '</th>';
+    $output .= '<th class="conference-title-heading" scope="col">' . esc_html__('Conference List', 'ajax-product-filter-for-woocommerce') . '</th>';
+    $output .= '<th class="conference-location-heading" scope="col">' . esc_html__('Location', 'ajax-product-filter-for-woocommerce') . '</th>';
+    $output .= '</tr></thead><tbody>';
+
+    if (!$query->have_posts()) {
+        $output .= '<tr class="conference-table-row conference-table-row--empty"><td colspan="3">' . esc_html__('No conferences found.', 'ajax-product-filter-for-woocommerce') . '</td></tr>';
+    } else {
+        $current_month_label = '';
+
+        while ($query->have_posts()) {
+            $query->the_post();
+
+            $product_id = get_the_ID();
+            $conference_data = dapfforwc_extract_conference_short_desc_data(get_post_field('post_excerpt', $product_id));
+            $month_label = dapfforwc_get_conference_month_label_from_date($conference_data['date']);
+
+            if ('' !== $month_label && $month_label !== $current_month_label) {
+                $output .= dapfforwc_render_conference_month_row($month_label);
+                $current_month_label = $month_label;
+            }
+
+            $output .= dapfforwc_render_conference_table_row(
+                [
+                    'product_id' => $product_id,
+                    'product_link' => get_permalink($product_id),
+                    'product_title' => get_the_title($product_id),
+                    'date' => $conference_data['date'],
+                    'place' => $conference_data['place'],
+                    'topic_badges' => dapfforwc_render_product_topic_badges($product_id),
+                ]
+            );
+        }
+    }
+
+    $output .= '</tbody></table>';
+
+    if ($pagination && $query->max_num_pages > 1) {
+        $pagination_base = str_replace(999999999, '%#%', esc_url_raw(get_pagenum_link(999999999)));
+        $pagination_links = paginate_links(
+            [
+                'base' => $pagination_base,
+                'format' => '',
+                'total' => absint($query->max_num_pages),
+                'current' => max(1, $paged),
+                'show_all' => false,
+                'type' => 'array',
+                'prev_text' => '&lt;',
+                'next_text' => '&gt;',
+            ]
+        );
+
+        if (!empty($pagination_links) && is_array($pagination_links)) {
+            $output .= '<nav class="woocommerce-pagination conference-table-pagination" aria-label="' . esc_attr__('Conference pagination', 'ajax-product-filter-for-woocommerce') . '">';
+            $output .= '<ul class="page-numbers">';
+
+            foreach ($pagination_links as $pagination_link) {
+                $pagination_link = str_replace(
+                    ['?paged=1', '&paged=1', '&#038;paged=1', '?paged=1/', '&paged=1/', '&#038;paged=1/'],
+                    '',
+                    $pagination_link
+                );
+                $output .= '<li>' . $pagination_link . '</li>';
+            }
+
+            $output .= '</ul></nav>';
+        }
+    }
+
+    wp_reset_postdata();
+
+    return $output;
+}
+
 
 function dapfforwc_get_shortcode_attributes_from_page($content, $shortcode)
 {

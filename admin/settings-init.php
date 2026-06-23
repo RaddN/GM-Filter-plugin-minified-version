@@ -19,10 +19,10 @@ function dapfforwc_settings_init() {
         'loader_css'=>'#loader { width: 56px; height: 56px; border-radius: 50%; background: conic-gradient(#0000 10%,#474bff); -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 9px),#000 0); animation: spinner-zp9dbg 1s infinite linear; } @keyframes spinner-zp9dbg { to { transform: rotate(1turn); } }',
         'default_filters' => [],
         'use_custom_template' => "on",
-        'custom_template_code' => '<tr>
-  <td>[product_date id="{{product_id}}"]</td>
-  <td><a href="{{product_link}}">{{product_title}}</a></td>
-  <td>[product_place id="{{product_id}}"]</td>
+        'custom_template_code' => '<tr class="conference-table-row">
+  <td class="conference-date-cell"><span class="conference-date-text">{{product_date}}</span></td>
+  <td class="conference-title-cell"><a class="conference-title-link" href="{{product_link}}">{{product_title}}</a>{{product_topics}}</td>
+  <td class="conference-location-cell"><span class="conference-location-pill"><span class="conference-location-text">{{product_place}}</span></span></td>
 </tr>',
         'product_selector' => '.products',
         'pagination_selector' => '.woocommerce-pagination ul.page-numbers',

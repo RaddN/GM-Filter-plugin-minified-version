@@ -688,7 +688,7 @@
                   - columnheader "Description" [ref=e523]
                   - columnheader "Automatic Updates" [ref=e524]
               - rowgroup [ref=e525]:
-                - row "Select AJAX Product Filter for WooCommerce AJAX Product Filter for WooCommerce Activate AJAX Product Filter for WooCommerce | Delete AJAX Product Filter for WooCommerce A WooCommerce plugin to filter products by attributes, categories, and tags using AJAX for seamless user experience. Version 3.0.1.17 | By Plugincy | More information about AJAX Product Filter for WooCommerce Enable auto-updates" [ref=e526]:
+                - row "Select AJAX Product Filter for WooCommerce AJAX Product Filter for WooCommerce Activate AJAX Product Filter for WooCommerce | Delete AJAX Product Filter for WooCommerce A WooCommerce plugin to filter products by attributes, categories, and tags using AJAX for seamless user experience. Version 3.0.1.18 | By Plugincy | More information about AJAX Product Filter for WooCommerce Enable auto-updates" [ref=e526]:
                   - rowheader "Select AJAX Product Filter for WooCommerce" [ref=e527]:
                     - generic [ref=e529]: Select AJAX Product Filter for WooCommerce
                     - checkbox "Select AJAX Product Filter for WooCommerce" [ref=e530] [cursor=pointer]
@@ -703,10 +703,10 @@
                       - link "Delete AJAX Product Filter for WooCommerce" [ref=e537] [cursor=pointer]:
                         - /url: plugins.php?action=delete-selected&checked%5B0%5D=ajax-product-filter-for-woocommerce%2Fajax-product-filter-for-woocommerce%2Fajax-product-filter-for-woocommerce.php&plugin_status=search&paged=1&s=AJAX+Product+Filter&_wpnonce=47755dd244
                         - text: Delete
-                  - cell "A WooCommerce plugin to filter products by attributes, categories, and tags using AJAX for seamless user experience. Version 3.0.1.17 | By Plugincy | More information about AJAX Product Filter for WooCommerce" [ref=e538]:
+                  - cell "A WooCommerce plugin to filter products by attributes, categories, and tags using AJAX for seamless user experience. Version 3.0.1.18 | By Plugincy | More information about AJAX Product Filter for WooCommerce" [ref=e538]:
                     - paragraph [ref=e540]: A WooCommerce plugin to filter products by attributes, categories, and tags using AJAX for seamless user experience.
                     - generic [ref=e541]:
-                      - text: Version 3.0.1.17 | By
+                      - text: Version 3.0.1.18 | By
                       - link "Plugincy" [ref=e542] [cursor=pointer]:
                         - /url: https://plugincy.com
                       - text: "|"
