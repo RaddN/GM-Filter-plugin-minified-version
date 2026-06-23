@@ -168,7 +168,7 @@ function dapfforwc_product_filter_shortcode($atts)
                 width: 48px;
                 height: 48px;
                 border-radius: 50%;
-                border: 2px solid var(--ast-global-color-0);
+                border: 2px solid var(--dapfforwc-primary-color, #c9a84c) !important;
                 position: absolute;
                 left: 0;
                 top: 0;
