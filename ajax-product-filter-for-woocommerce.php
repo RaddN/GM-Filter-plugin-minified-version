@@ -4,7 +4,7 @@
  * Plugin Name: AJAX Product Filter for WooCommerce
  * Plugin URI:  https://plugincy.com/
  * Description: A WooCommerce plugin to filter products by attributes, categories, and tags using AJAX for seamless user experience.
- * Version:     3.0.1.18
+ * Version:     3.0.1.20
  * Author:      Plugincy
  * Author URI:  https://plugincy.com
  * License:     GPL-2.0-or-later
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('DAPFFORWC_VERSION', '3.0.1.18');
+define('DAPFFORWC_VERSION', '3.0.1.20');
 
 // Global Variables
 global $wcapf_options, $dapfforwc_advance_settings, $dapfforwc_slug;

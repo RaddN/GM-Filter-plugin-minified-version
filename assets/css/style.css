@@ -660,7 +660,7 @@ body #product-filter .dapfforwc-filter-search {
   position: relative;
   display: flex;
   align-items: center;
-  margin: 4px 18px 0;
+  margin: 4px 18px 10px;
 }
 body #product-filter .dapfforwc-filter-search-icon {
   position: absolute;
@@ -1619,10 +1619,10 @@ body table.featured-conferences-table .conference-topic-badge {
   max-width: 100% !important;
   min-height: 24px !important;
   padding: 5px 10px !important;
-  border: 1px solid #d8eef4 !important;
+  border: 1px solid #d8eef4;
   border-radius: 6px !important;
-  background: #eef9fb !important;
-  color: #167b90 !important;
+  background: #eef9fb;
+  color: #167b90;
   font-size: 11px !important;
   font-weight: 800 !important;
   line-height: 1.1 !important;
@@ -1637,19 +1637,6 @@ body table.featured-conferences-table .conference-topic-badge::before {
   border-radius: 2px;
   background: currentColor;
   transform: rotate(45deg);
-}
-
-body table.featured-conferences-table .conference-topic-badge--business-management {
-  border-color: #d9e7ff !important;
-  background: #f0f5ff !important;
-  color: #5376c8 !important;
-}
-
-body table.featured-conferences-table .conference-topic-badge--advertising-and-marketing-communications,
-body table.featured-conferences-table .conference-topic-badge--digital-marketing-and-technology {
-  border-color: #f9dfbd !important;
-  background: #fff5e8 !important;
-  color: #bd6b12 !important;
 }
 
 body table.featured-conferences-table .conference-location-cell {

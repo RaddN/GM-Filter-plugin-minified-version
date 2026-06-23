@@ -1042,6 +1042,182 @@ function dapfforwc_get_product_topic_text($product_id)
     return implode(', ', wp_list_pluck($terms, 'name'));
 }
 
+function dapfforwc_hsl_to_hex($hue, $saturation, $lightness)
+{
+    $hue = ((int) round($hue) % 360 + 360) % 360;
+    $saturation = max(0, min(100, (int) $saturation)) / 100;
+    $lightness = max(0, min(100, (int) $lightness)) / 100;
+    $chroma = (1 - abs(2 * $lightness - 1)) * $saturation;
+    $x = $chroma * (1 - abs(fmod($hue / 60, 2) - 1));
+    $m = $lightness - ($chroma / 2);
+    $red = 0;
+    $green = 0;
+    $blue = 0;
+
+    if ($hue < 60) {
+        $red = $chroma;
+        $green = $x;
+    } elseif ($hue < 120) {
+        $red = $x;
+        $green = $chroma;
+    } elseif ($hue < 180) {
+        $green = $chroma;
+        $blue = $x;
+    } elseif ($hue < 240) {
+        $green = $x;
+        $blue = $chroma;
+    } elseif ($hue < 300) {
+        $red = $x;
+        $blue = $chroma;
+    } else {
+        $red = $chroma;
+        $blue = $x;
+    }
+
+    return sprintf(
+        '#%02x%02x%02x',
+        (int) round(($red + $m) * 255),
+        (int) round(($green + $m) * 255),
+        (int) round(($blue + $m) * 255)
+    );
+}
+
+function dapfforwc_get_topic_badge_seed($term)
+{
+    if (isset($term->slug) && '' !== (string) $term->slug) {
+        return sanitize_title((string) $term->slug);
+    }
+
+    if (isset($term->name) && '' !== (string) $term->name) {
+        return sanitize_title((string) $term->name);
+    }
+
+    return 'conference-topic';
+}
+
+function dapfforwc_get_topic_badge_hash($seed)
+{
+    return hash('sha256', $seed ?: 'conference-topic');
+}
+
+function dapfforwc_get_topic_badge_hash_byte($hash, $offset)
+{
+    return (int) hexdec(substr($hash, $offset, 2));
+}
+
+function dapfforwc_get_topic_badge_hue_distance($hue_a, $hue_b)
+{
+    $distance = abs((float) $hue_a - (float) $hue_b);
+
+    return min($distance, 360 - $distance);
+}
+
+function dapfforwc_pick_topic_badge_hue($base_hue, $used_hues)
+{
+    if (empty($used_hues)) {
+        return $base_hue;
+    }
+
+    $best_hue = $base_hue;
+    $best_score = -1;
+    $golden_angle = 137.508;
+
+    for ($attempt = 0; $attempt < 48; $attempt++) {
+        $candidate = fmod($base_hue + ($attempt * $golden_angle), 360);
+        $score = 360;
+
+        foreach ($used_hues as $used_hue) {
+            $score = min($score, dapfforwc_get_topic_badge_hue_distance($candidate, $used_hue));
+        }
+
+        if ($score > $best_score) {
+            $best_score = $score;
+            $best_hue = $candidate;
+        }
+
+        if ($score >= 34) {
+            break;
+        }
+    }
+
+    return $best_hue;
+}
+
+function dapfforwc_get_topic_badge_colors_from_hue($hue, $hash)
+{
+    $saturation = 62 + (dapfforwc_get_topic_badge_hash_byte($hash, 2) % 16);
+    $text_lightness = 25 + (dapfforwc_get_topic_badge_hash_byte($hash, 4) % 10);
+    $background_saturation = max(36, $saturation - 18);
+    $border_saturation = max(44, $saturation - 10);
+
+    return [
+        'text' => dapfforwc_hsl_to_hex($hue, $saturation, $text_lightness),
+        'background' => dapfforwc_hsl_to_hex($hue, $background_saturation, 94),
+        'border' => dapfforwc_hsl_to_hex($hue, $border_saturation, 78),
+    ];
+}
+
+function dapfforwc_get_topic_badge_color_map()
+{
+    static $color_map = null;
+
+    if (null !== $color_map) {
+        return $color_map;
+    }
+
+    $color_map = [];
+    $used_hues = [];
+    $terms = get_terms(
+        [
+            'taxonomy' => 'pa_popular-topics',
+            'hide_empty' => false,
+            'orderby' => 'term_id',
+            'order' => 'ASC',
+        ]
+    );
+
+    if (is_wp_error($terms) || empty($terms)) {
+        return $color_map;
+    }
+
+    $position = 0;
+
+    foreach ($terms as $term) {
+        $seed = dapfforwc_get_topic_badge_seed($term);
+        $hash = dapfforwc_get_topic_badge_hash($seed);
+        $sequence_hue = fmod(29 + ($position * 137.508), 360);
+        $jitter = (dapfforwc_get_topic_badge_hash_byte($hash, 0) % 29) - 14;
+        $base_hue = fmod($sequence_hue + $jitter + 360, 360);
+        $hue = dapfforwc_pick_topic_badge_hue($base_hue, $used_hues);
+
+        $used_hues[] = $hue;
+        $color_map[(int) $term->term_id] = dapfforwc_get_topic_badge_colors_from_hue($hue, $hash);
+        $position++;
+    }
+
+    return $color_map;
+}
+
+function dapfforwc_get_topic_badge_style($term)
+{
+    $color_map = dapfforwc_get_topic_badge_color_map();
+
+    if (isset($term->term_id) && isset($color_map[(int) $term->term_id])) {
+        $colors = $color_map[(int) $term->term_id];
+    } else {
+        $seed = dapfforwc_get_topic_badge_seed($term);
+        $hash = dapfforwc_get_topic_badge_hash($seed);
+        $colors = dapfforwc_get_topic_badge_colors_from_hue(dapfforwc_get_topic_badge_hash_byte($hash, 0) % 360, $hash);
+    }
+
+    return sprintf(
+        'border-color:%1$s;background-color:%2$s;color:%3$s;',
+        $colors['border'],
+        $colors['background'],
+        $colors['text']
+    );
+}
+
 function dapfforwc_render_product_topic_badges($product_id)
 {
     $terms = dapfforwc_get_product_topic_terms($product_id);
@@ -1054,7 +1230,7 @@ function dapfforwc_render_product_topic_badges($product_id)
 
     foreach ($terms as $term) {
         $slug = sanitize_html_class($term->slug);
-        $output .= '<span class="conference-topic-badge conference-topic-badge--' . esc_attr($slug) . '">' . esc_html($term->name) . '</span>';
+        $output .= '<span class="conference-topic-badge conference-topic-badge--' . esc_attr($slug) . '" style="' . esc_attr(dapfforwc_get_topic_badge_style($term)) . '">' . esc_html($term->name) . '</span>';
     }
 
     $output .= '</span>';
@@ -1083,6 +1259,7 @@ function dapfforwc_get_conference_table_allowed_html()
         ],
         'span' => [
             'class' => [],
+            'style' => [],
         ],
         'tr' => [
             'class' => [],

@@ -391,7 +391,10 @@ class dapfforwc_Filter_Functions
                 'h4' => array('class' => array()), // Allow h4
                 'h5' => array('class' => array()), // Allow h5
                 'h6' => array('class' => array()), // Allow h6
-                'span' => array('class' => array()),
+                'span' => array(
+                    'class' => array(),
+                    'style' => array(),
+                ),
                 'p' => array('class' => array()),
                 'br' => array(), // Allow line breaks
                 'blockquote' => array(
